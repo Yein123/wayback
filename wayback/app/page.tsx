@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CaptureButton from "@/components/CaptureButton";
 import HistoryList from "@/components/HistoryList";
@@ -34,7 +35,13 @@ export default function Home() {
             router.push("/locate?mode=park");
           }}
         />
-        <p className="text-center text-sm text-muted">Snap your parking spot&apos;s surroundings.</p>
+        <p className="text-center text-sm text-muted">Snap around your parking spot.</p>
+        <Link
+          href="/destination"
+          className="rounded-2xl border border-violet/60 bg-violet/10 px-6 py-3 font-hud text-sm tracking-[0.3em] text-violet active:scale-[0.98]"
+        >
+          WHERE TO?
+        </Link>
         <ModelStatusLine />
       </section>
 

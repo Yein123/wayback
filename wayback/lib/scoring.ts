@@ -35,3 +35,45 @@ export function rankSpots(query: ArrayLike<number>, references: ReferenceEmbeddi
   }
   return [...best.values()].sort((a, b) => b.score - a.score);
 }
+
+/**
+ * Four-side capture: a spot's score is the average of its scores across all the photos, so it has to
+ * look right from several directions rather than win on one lucky match. Its photo is its best match.
+ */
+export function combineSides(perPhoto: SpotGuess[][]): SpotGuess[] {
+  if (perPhoto.length === 1) return perPhoto[0];
+  const totals = new Map<string, { sum: number; best: SpotGuess }>();
+  for (const guesses of perPhoto) {
+    for (const g of guesses) {
+      const t = totals.get(g.spotId);
+      if (!t) totals.set(g.spotId, { sum: g.score, best: g });
+      else {
+        t.sum += g.score;
+        if (g.score > t.best.score) t.best = g;
+      }
+    }
+  }
+  return [...totals.values()]
+    .map(({ sum, best }) => ({ spotId: best.spotId, file: best.file, score: sum / perPhoto.length }))
+    .sort((a, b) => b.score - a.score);
+}
+
+/**
+ * The GPS pin: with an accurate fix (in map metres), drop spots that are too far away to be where you are.
+ * A poor or missing fix changes nothing, and it never drops every spot. GPS can't tell floors, so only
+ * the position on the floor plan is compared.
+ */
+export function nearGps(
+  guesses: SpotGuess[],
+  here: { x: number; y: number; accuracy: number } | null,
+  posOf: (spotId: string) => [number, number] | undefined,
+  { maxAccuracy = 20, margin = 15 } = {},
+): SpotGuess[] {
+  if (!here || here.accuracy > maxAccuracy) return guesses;
+  const reach = here.accuracy + margin;
+  const kept = guesses.filter((g) => {
+    const p = posOf(g.spotId);
+    return !p || Math.hypot(p[0] - here.x, p[1] - here.y) <= reach;
+  });
+  return kept.length ? kept : guesses;
+}

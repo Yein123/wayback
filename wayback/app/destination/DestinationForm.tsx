@@ -18,12 +18,14 @@ export default function DestinationForm() {
   function go(e: React.FormEvent) {
     e.preventDefault();
     const to = findRoom(room);
-    const path = to ? shortestPath(from, to) : null;
-    if (!to || !path) {
+    const path = to && fromSpot ? shortestPath(from, to) : null;
+    if (!to || (fromSpot && !path)) {
       setUnknown(normalizeRoom(room) || room);
       return;
     }
-    startTrip({ mode: "toRoom", from, to, steps: toSteps(path, { target: "room", label: getSpot(to)!.label }, to) });
+    // Where to? (no start yet): find where you are next, then the route starts from there.
+    if (!fromSpot) return router.push(`/locate?mode=where&to=${to}`);
+    startTrip({ mode: "toRoom", from, to, steps: toSteps(path!, { target: "room", label: getSpot(to)!.label }, to) });
     router.push("/directions");
   }
 
@@ -67,12 +69,12 @@ export default function DestinationForm() {
         </HudPanel>
         <button
           type="submit"
-          disabled={!room.trim() || !fromSpot}
+          disabled={!room.trim()}
           className="rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98] disabled:opacity-40"
         >
-          START QUEST
+          {fromSpot ? "START QUEST" : "NEXT: FIND WHERE I AM"}
         </button>
-        {!fromSpot && <p className="text-center text-sm text-amber">Capture your parking spot first.</p>}
+        {!fromSpot && <p className="text-center text-sm text-muted">Then snap around you, and the route starts from where you are.</p>}
       </form>
     </main>
   );

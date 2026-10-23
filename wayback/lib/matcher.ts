@@ -1,6 +1,8 @@
 // Location Matcher: CLIP embedding of a photo, compared against the reference photos.
-import { rankSpots, type ReferenceEmbedding, type SpotGuess } from "@/lib/scoring";
+import { combineSides, nearGps, rankSpots, type ReferenceEmbedding, type SpotGuess } from "@/lib/scoring";
+import { gpsToMap, type Gps, type GpsAnchor } from "@/lib/gps";
 import { resizePhoto } from "@/lib/image";
+import { getSpot } from "@/lib/map";
 
 export type ModelStatus =
   | { state: "idle" }
@@ -80,4 +82,24 @@ export async function matchPhoto(photo: Blob): Promise<SpotGuess[]> {
   warmUp();
   const [vector, refs] = await Promise.all([resizePhoto(photo).then(embed), loadReferences()]);
   return rankSpots(vector, refs);
+}
+
+let anchors: Promise<GpsAnchor[]> | null = null;
+function loadAnchors() {
+  anchors ??= fetch("/data/gps-anchors.json")
+    .then((r) => (r.ok ? r.json() : []))
+    .catch(() => []);
+  return anchors;
+}
+
+/**
+ * Four-side capture: match each photo (front, right, back, left — any you took), combine them per spot,
+ * then let an accurate GPS fix rule out spots that are too far away (only once GPS anchors exist).
+ */
+export async function matchPhotos(photos: Blob[], gps: Gps | null): Promise<SpotGuess[]> {
+  const perPhoto: SpotGuess[][] = [];
+  for (const photo of photos) perPhoto.push(await matchPhoto(photo)); // one at a time keeps the phone responsive
+  const combined = combineSides(perPhoto);
+  const here = gps ? gpsToMap(gps, await loadAnchors()) : null;
+  return nearGps(combined, here, (id) => getSpot(id)?.pos);
 }

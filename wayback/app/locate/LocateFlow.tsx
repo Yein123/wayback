@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import CaptureButton from "@/components/CaptureButton";
@@ -9,17 +9,17 @@ import ModelStatusLine from "@/components/ModelStatusLine";
 import { getGps, type Gps } from "@/lib/gps";
 import { makeThumb } from "@/lib/image";
 import { getSpot } from "@/lib/map";
-import { matchPhoto } from "@/lib/matcher";
+import { matchPhotos } from "@/lib/matcher";
 import { getCurrentParking, saveParking } from "@/lib/parkings";
 import { shortestPath, toSteps } from "@/lib/route";
 import { currentTrip, startTrip } from "@/lib/trip";
 import { clearPendingPhoto, peekPendingPhoto } from "@/lib/pendingPhoto";
 import type { SpotGuess } from "@/lib/scoring";
 
-type Mode = "park" | "car" | "help";
+type Mode = "park" | "car" | "help" | "where";
 
 type Step =
-  | { kind: "snap" }
+  | { kind: "snap"; shots: File[] }
   | { kind: "working"; photoUrl: string }
   | { kind: "result"; photoUrl: string; file: File; guesses: SpotGuess[] }
   | { kind: "saving" }
@@ -27,38 +27,51 @@ type Step =
   | { kind: "error"; message: string };
 
 const prompts: Record<Mode, string> = {
-  park: "Snap your parking spot's surroundings.",
-  car: "Snap where you are now.",
-  help: "Snap where you are now.",
+  park: "Snap around your parking spot.",
+  car: "Snap around where you are now.",
+  help: "Snap around where you are now.",
+  where: "Snap around where you are now.",
 };
+
+/** Four-side capture: turn on the spot and snap each way. Any you skip are left out. */
+const SIDES = [
+  { name: "FRONT", hint: "Face the way you're heading (or your car's nose)." },
+  { name: "RIGHT", hint: "Turn right a quarter turn." },
+  { name: "BACK", hint: "Turn right again: face behind you." },
+  { name: "LEFT", hint: "One more quarter turn right." },
+];
 
 export default function LocateFlow() {
   const router = useRouter();
-  const mode = (useSearchParams().get("mode") as Mode | null) ?? "park";
-  // A photo handed over from Home starts straight in the "working" step.
+  const params = useSearchParams();
+  const mode = (params.get("mode") as Mode | null) ?? "park";
+  // Where to?: the destination was chosen first.
+  const whereTo = params.get("to");
+  // A photo handed over from Home is the FRONT shot; the other sides are taken here.
   const [handedOver] = useState(peekPendingPhoto);
-  const [step, setStep] = useState<Step>(() =>
-    handedOver ? { kind: "working", photoUrl: URL.createObjectURL(handedOver) } : { kind: "snap" },
-  );
+  const [step, setStep] = useState<Step>(() => ({ kind: "snap", shots: handedOver ? [handedOver] : [] }));
 
-  // GPS is asked for while the photo is being matched, and only read when saving.
+  // GPS is asked for at the first shot, so it's ready by the time the photos are matched.
   const gps = useRef<Promise<Gps | null> | null>(null);
 
-  const runMatch = useCallback(async (file: File, photoUrl: string) => {
-    gps.current = getGps();
+  const runMatch = useCallback(async (shots: File[]) => {
+    const photoUrl = URL.createObjectURL(shots[0]);
+    setStep({ kind: "working", photoUrl });
+    gps.current ??= getGps();
     try {
-      const guesses = await matchPhoto(file);
-      setStep({ kind: "result", photoUrl, file, guesses });
+      const guesses = await matchPhotos(shots, await gps.current);
+      setStep({ kind: "result", photoUrl, file: shots[0], guesses });
     } catch (err) {
       setStep({ kind: "error", message: err instanceof Error ? err.message : String(err) });
     }
   }, []);
 
-  const locate = useCallback(
-    (file: File) => {
-      const photoUrl = URL.createObjectURL(file);
-      setStep({ kind: "working", photoUrl });
-      void runMatch(file, photoUrl);
+  const addShot = useCallback(
+    (shots: File[], file: File) => {
+      gps.current ??= getGps();
+      const next = [...shots, file];
+      if (next.length === SIDES.length) void runMatch(next);
+      else setStep({ kind: "snap", shots: next });
     },
     [runMatch],
   );
@@ -90,13 +103,11 @@ export default function LocateFlow() {
     router.push("/directions");
   }
 
-  const started = useRef(false);
   useEffect(() => {
-    if (started.current || !handedOver || step.kind !== "working") return;
-    started.current = true;
+    if (!handedOver) return;
     clearPendingPhoto();
-    void runMatch(handedOver, step.photoUrl);
-  }, [handedOver, step, runMatch]);
+    gps.current ??= getGps();
+  }, [handedOver]);
 
   return (
     <main className="flex flex-1 flex-col gap-6">
@@ -107,13 +118,7 @@ export default function LocateFlow() {
         <span className="font-hud text-xs tracking-[0.2em] text-glow">LOCATE</span>
       </header>
 
-      {step.kind === "snap" && (
-        <section className="flex flex-1 flex-col items-center justify-center gap-4">
-          <CaptureButton label="Snap" onPhoto={locate} />
-          <p className="text-center text-sm text-muted">{prompts[mode]}</p>
-          <ModelStatusLine />
-        </section>
-      )}
+      {step.kind === "snap" && <SnapSides mode={mode} shots={step.shots} onShot={(f) => addShot(step.shots, f)} onMatch={() => runMatch(step.shots)} />}
 
       {step.kind === "working" && (
         <section className="flex flex-col items-center gap-4">
@@ -135,6 +140,7 @@ export default function LocateFlow() {
           onConfirm={async (guess) => {
             if (mode === "car") return routeToCar(guess.spotId);
             if (mode === "help") return reroute(guess.spotId);
+            if (mode === "where") return whereTo ? go(guess.spotId, whereTo, "toRoom") : setStep({ kind: "confirmed", guess });
             setStep({ kind: "saving" });
             try {
               const [thumb, fix] = await Promise.all([makeThumb(step.file), gps.current ?? Promise.resolve(null)]);
@@ -162,7 +168,7 @@ export default function LocateFlow() {
         <HudPanel tone="amber" className="flex flex-col gap-3">
           <p className="font-hud text-sm tracking-widest text-amber">SCAN FAILED</p>
           <p className="text-sm text-muted">{step.message}</p>
-          <CaptureButton size="small" label="Try again" onPhoto={locate} />
+          <CaptureButton size="small" label="Try again" onPhoto={(f) => addShot([], f)} />
         </HudPanel>
       )}
     </main>
@@ -212,6 +218,45 @@ function Result({
       >
         ✓ CONFIRM
       </button>
+    </section>
+  );
+}
+
+function SnapSides({ mode, shots, onShot, onMatch }: { mode: Mode; shots: File[]; onShot: (f: File) => void; onMatch: () => void }) {
+  const side = SIDES[shots.length];
+  // One preview URL per photo, released when the photos change or the screen closes.
+  const previews = useMemo(() => shots.map((f) => URL.createObjectURL(f)), [shots]);
+  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+  return (
+    <section className="flex flex-1 flex-col items-center gap-5">
+      <p className="text-center text-sm text-muted">{prompts[mode]}</p>
+      <div className="grid w-full grid-cols-4 gap-2">
+        {SIDES.map((s, i) => (
+          <figure key={s.name} className="flex flex-col items-center gap-1">
+            <div
+              className={`aspect-square w-full overflow-hidden rounded-xl border ${i === shots.length ? "border-glow shadow-glow" : "border-edge"}`}
+            >
+              {shots[i] && (
+                // eslint-disable-next-line @next/next/no-img-element -- local camera photo
+                <img src={previews[i]} alt="" className="h-full w-full object-cover" />
+              )}
+            </div>
+            <figcaption className={`font-hud text-[10px] tracking-widest ${i === shots.length ? "text-glow" : "text-muted"}`}>{s.name}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <CaptureButton label={`Snap ${side.name.toLowerCase()}`} onPhoto={onShot} />
+      <p className="text-center text-sm text-ink">{side.hint}</p>
+      {shots.length > 0 && (
+        <button
+          type="button"
+          onClick={onMatch}
+          className="rounded-2xl border border-edge px-5 py-3 font-hud text-xs tracking-widest text-muted active:scale-[0.98]"
+        >
+          SKIP THE REST · MATCH {shots.length}/{SIDES.length}
+        </button>
+      )}
+      <ModelStatusLine />
     </section>
   );
 }
