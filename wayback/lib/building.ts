@@ -1,6 +1,7 @@
 // The whole M06 block, generated from its layout rules (every floor is the same):
 // a central lift lobby, four hallways in an X, and on each hallway four stairs whose
 // cubes sit half a flight down (stairs 1 and 4) or half a flight up (stairs 2 and 3), one each side.
+// The cubes stack: stair 1's cube is directly under stair 2's, and stair 4's directly under stair 3's.
 // The route itself still comes from dorm-map.json; this is the structure drawn around it.
 
 export const FLOORS = ["B2", "B1", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
@@ -18,6 +19,8 @@ export type Cube = {
   center: [number, number];
   /** Where its stairs meet the hallway. */
   door: [number, number];
+  /** Unit vector from the hallway into the cube. */
+  inward: [number, number];
   /** Degrees, the hallway's direction going outward. */
   angle: number;
 };
@@ -30,7 +33,7 @@ const SE_STAIRS: [number, number][] = [
   [53, 41],
 ];
 const SE_END: [number, number] = [62, 48];
-const CUBE_GAP = { lower: 9, upper: 13 }; // upper cubes sit further back from the hallway
+const CUBE_GAP = 11; // hallway centre line to a cube's centre
 
 const MIRROR: Record<Hallway, [number, number]> = { SE: [1, 1], NE: [1, -1], SW: [-1, 1], NW: [-1, -1] };
 
@@ -46,11 +49,14 @@ export function cubes(): Cube[] {
   return HALLWAYS.flatMap((h) =>
     SE_STAIRS.flatMap((stair, i) => {
       const half = i === 1 || i === 2 ? 0.5 : -0.5;
-      const gap = half > 0 ? CUBE_GAP.upper : CUBE_GAP.lower;
+      // stairs 1 + 2 share one stack of cubes, stairs 3 + 4 the next, centred between their stairs
+      const [a, b] = i < 2 ? [SE_STAIRS[0], SE_STAIRS[1]] : [SE_STAIRS[2], SE_STAIRS[3]];
+      const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
       return (["right", "left"] as const).map((side): Cube => {
         // In SE terms "right" of the outward direction is south-west; mirroring keeps each cube on its own side.
         const s = side === "right" ? 1 : -1;
-        const seCenter: [number, number] = [stair[0] - dy * gap * s, stair[1] + dx * gap * s];
+        const seInward: [number, number] = [-dy * s, dx * s];
+        const seCenter: [number, number] = [mid[0] + seInward[0] * CUBE_GAP, mid[1] + seInward[1] * CUBE_GAP];
         const [ox, oy] = flip(h, [dx, dy]);
         return {
           hallway: h,
@@ -59,6 +65,7 @@ export function cubes(): Cube[] {
           half,
           center: flip(h, seCenter),
           door: flip(h, stair),
+          inward: flip(h, seInward),
           angle: (Math.atan2(oy, ox) * 180) / Math.PI,
         };
       });
@@ -79,8 +86,7 @@ export const CUBE_ENTRY_X = 0.9;
  * right in the cubes on the left of the hallway (like the demo cube F6-25 – 28), and on your left opposite.
  */
 export function cubePoint(c: Cube, x: number, d: number): [number, number] {
-  const len = Math.hypot(c.center[0] - c.door[0], c.center[1] - c.door[1]);
-  const f = [(c.center[0] - c.door[0]) / len, (c.center[1] - c.door[1]) / len]; // walking in
+  const f = c.inward; // walking in
   const plus = c.side === "left" ? [-f[1], f[0]] : [f[1], -f[0]]; // your right : your left
   const nx = c.center[0] - f[0] * (CUBE.depth / 2);
   const ny = c.center[1] - f[1] * (CUBE.depth / 2);

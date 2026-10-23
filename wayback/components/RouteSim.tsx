@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, LIFT_FLOORS, type Cube } from "@/lib/building";
+import { CUBE, CUBE_ENTRY_X, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, LIFT_FLOORS, type Cube } from "@/lib/building";
 import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
 import type { Step } from "@/lib/route";
 
@@ -264,12 +264,12 @@ function drawLayers(steps: Step[], stepIndex: number) {
 
         {l.cubes.map((c) => (
           <g key={`${c.hallway}${c.stair}${c.side}`}>
-            <line x1={c.door[0]} y1={c.door[1]} x2={c.center[0]} y2={c.center[1]} stroke={EDGE} strokeWidth={1.4} />
+            <line x1={c.door[0]} y1={c.door[1]} x2={cubePoint(c, CUBE_ENTRY_X, 0)[0]} y2={cubePoint(c, CUBE_ENTRY_X, 0)[1]} stroke={EDGE} strokeWidth={1.4} />
             <rect
-              x={-5}
-              y={-4}
-              width={10}
-              height={8}
+              x={-CUBE.width / 2}
+              y={-CUBE.depth / 2}
+              width={CUBE.width}
+              height={CUBE.depth}
               rx={1}
               transform={`translate(${c.center[0]} ${c.center[1]}) rotate(${c.angle})`}
               fill={c.half > 0 ? "#122033" : "#0C1420"}

@@ -15,8 +15,12 @@ describe("building", () => {
     const all = cubes();
     expect(all).toHaveLength(32);
     expect(all.filter((c) => c.half > 0)).toHaveLength(16);
-    // upper cubes are stairs 2 and 3, and sit further from the hallway
+    // upper cubes are stairs 2 and 3, each stacked right on top of the lower cube of stair 1 or 4
     for (const c of all) expect(c.half > 0).toBe(c.stair === 2 || c.stair === 3);
+    const at = (stair: number) => all.find((c) => c.hallway === "SE" && c.side === "left" && c.stair === stair)!.center;
+    expect(at(1)).toEqual(at(2));
+    expect(at(4)).toEqual(at(3));
+    expect(at(1)).not.toEqual(at(4));
   });
 
   it("puts the demo cube on the left of SE stair 2, half a flight above floor 5", () => {
@@ -34,8 +38,9 @@ describe("building", () => {
     // which side of "walking in" a plan point lands on: > 0 is your right (map y points south)
     const sideOf = (c: Cube, x: number) => {
       const [px, py] = cubePoint(c, x, 1);
-      const [fx, fy] = [c.center[0] - c.door[0], c.center[1] - c.door[1]];
-      return fx * (py - c.door[1]) - fy * (px - c.door[0]);
+      const [fx, fy] = c.inward;
+      const [ox, oy] = cubePoint(c, 0, 0);
+      return fx * (py - oy) - fy * (px - ox);
     };
     const demo = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "left")!;
     const opposite = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "right")!;

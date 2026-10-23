@@ -488,11 +488,8 @@ function buildLayers(): Layer[] {
       const angle = (c.angle * Math.PI) / 180;
       add(level + c.half, { center: [c.center[0], base + CUBE_H / 2, c.center[1]], size: [CUBE.width, CUBE_H, CUBE.depth], angle });
       // half a flight from the hallway's edge up (or down) to the cube's entry gap
-      const len = Math.hypot(c.center[0] - c.door[0], c.center[1] - c.door[1]);
-      const [vx, vy] = [(c.center[0] - c.door[0]) / len, (c.center[1] - c.door[1]) / len];
       const to = cubePoint(c, CUBE_ENTRY_X, 0);
-      const run = len - CUBE.depth / 2 - 2.5;
-      const from: [number, number] = [to[0] - vx * run, to[1] - vy * run];
+      const from: [number, number] = [c.door[0] + c.inward[0] * 2.5, c.door[1] + c.inward[1] * 2.5];
       for (const b of flight(from, to, level * FH, c.half * FH, 1.4)) add(level + c.half, b);
     }
   }
