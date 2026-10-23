@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { compassName, latLngName } from "@/lib/compass";
 import { gpsToMap } from "@/lib/gps";
 
 describe("gpsToMap", () => {
@@ -29,5 +30,19 @@ describe("gpsToMap", () => {
 
   it("is off with fewer than two anchors", () => {
     expect(gpsToMap({ ...at(0, 0), accuracy: 5 }, anchors.slice(0, 1))).toBeNull();
+  });
+});
+
+describe("compass and coordinate names", () => {
+  it("names headings by the nearest compass point", () => {
+    expect(compassName(0)).toBe("N 0°");
+    expect(compassName(47)).toBe("NE 47°");
+    expect(compassName(181)).toBe("S 181°");
+    expect(compassName(350)).toBe("N 350°");
+  });
+
+  it("writes coordinates with N/S and E/W", () => {
+    expect(latLngName(5.3551234, 100.2963412)).toBe("5.35512° N, 100.29634° E");
+    expect(latLngName(-33.86, -70.5)).toBe("33.86000° S, 70.50000° W");
   });
 });

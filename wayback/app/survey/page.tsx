@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import FloorPlanPicker, { type Pin } from "@/components/FloorPlanPicker";
+import CaptureButton from "@/components/CaptureButton";
 import HudPanel from "@/components/HudPanel";
 import SnapSides, { SIDES } from "@/components/SnapSides";
 import { FLOORS } from "@/lib/building";
+import { compassName, latLngName, useCompass } from "@/lib/compass";
 import { getGps, type Gps } from "@/lib/gps";
 import { listSurvey, surveyAccess, uploadShot } from "@/lib/survey";
 
@@ -24,6 +26,12 @@ export default function SurveyPage() {
   const [marks, setMarks] = useState<(string | undefined)[]>([]);
   const [saved, setSaved] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const compass = useCompass();
+  // A note on one side of the spot, with an optional photo.
+  const [noteSide, setNoteSide] = useState(SIDES[0].name);
+  const [noteText, setNoteText] = useState("");
+  const [notePhoto, setNotePhoto] = useState<File | null>(null);
+  const [noteState, setNoteState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
 
   useEffect(() => {
     surveyAccess()
@@ -41,20 +49,46 @@ export default function SurveyPage() {
     void readGps();
   }
 
+  /** Where the pin is, plus GPS and which way the phone faces right now. */
+  function where(side: string, note: string) {
+    return {
+      spotId: pin!.spot?.id ?? null,
+      floor,
+      pos: pin!.pos,
+      level: pin!.level,
+      cube: pin!.cube ?? null,
+      side,
+      heading: compass.heading === null ? null : Math.round(compass.heading),
+      gps: gps === "reading" ? null : gps,
+      note,
+    };
+  }
+
   async function shoot(file: File) {
     if (!pin) return;
     const i = shots.length;
     setShots([...shots, file]);
     setMarks((m) => Object.assign([...m], { [i]: "SAVING" }));
     try {
-      await uploadShot(
-        { spotId: pin.spot?.id ?? null, floor, pos: pin.pos, side: SIDES[i].name, gps: gps === "reading" ? null : gps },
-        file,
-      );
+      await uploadShot(where(SIDES[i].name, ""), file);
       setMarks((m) => Object.assign([...m], { [i]: "SAVED" }));
       setSaved((n) => n + 1);
     } catch {
       setMarks((m) => Object.assign([...m], { [i]: "FAILED" }));
+    }
+  }
+
+  async function saveNote() {
+    if (!pin || (!noteText.trim() && !notePhoto)) return;
+    setNoteState("saving");
+    try {
+      await uploadShot(where(noteSide, noteText.trim()), notePhoto);
+      setNoteState("saved");
+      setNoteText("");
+      setNotePhoto(null);
+      setSaved((n) => n + 1);
+    } catch {
+      setNoteState("failed");
     }
   }
 
@@ -63,6 +97,9 @@ export default function SurveyPage() {
     setShots([]);
     setMarks([]);
     setGps(null);
+    setNoteText("");
+    setNotePhoto(null);
+    setNoteState("idle");
   }
 
   async function exportPack() {
@@ -126,7 +163,9 @@ export default function SurveyPage() {
                 ? "Tap your position on the plan."
                 : pin.spot
                   ? `Pinned: ${pin.spot.label}`
-                  : `New place on floor ${floor} at ${pin.pos[0]}, ${pin.pos[1]} m`}
+                  : pin.cube
+                    ? `In the ${pin.cube.hallway} ${pin.cube.stair === 2 || pin.cube.stair === 3 ? "upper" : "lower"} cube (stair ${pin.cube.stair})${pin.cube.room ? `, room ${pin.cube.room}` : ", corridor"}`
+                    : `New place on floor ${floor} at ${pin.pos[0]}, ${pin.pos[1]} m`}
             </p>
           </HudPanel>
 
@@ -141,10 +180,21 @@ export default function SurveyPage() {
                       ? `±${Math.round(gps.accuracy)} m ${gpsGood ? "· good for pinning" : "· too rough to pin (still saved)"}`
                       : "No GPS fix here (fine indoors / underground)"}
                 </p>
+                {gps && gps !== "reading" && <p className="font-mono text-xs text-ink">{latLngName(gps.lat, gps.lng)}</p>}
+                <p className="font-mono text-xs text-muted">
+                  {compass.heading !== null ? `Facing ${compassName(compass.heading)}` : compass.needsPermission ? "Compass off" : "No compass on this device"}
+                </p>
               </div>
-              <button type="button" onClick={readGps} className="rounded-lg border border-edge px-3 py-1.5 font-hud text-[10px] tracking-widest text-muted">
-                READ AGAIN
-              </button>
+              <div className="flex flex-col gap-1.5">
+                <button type="button" onClick={readGps} className="rounded-lg border border-edge px-3 py-1.5 font-hud text-[10px] tracking-widest text-muted">
+                  READ AGAIN
+                </button>
+                {compass.needsPermission && (
+                  <button type="button" onClick={compass.enable} className="rounded-lg border border-glow/60 px-3 py-1.5 font-hud text-[10px] tracking-widest text-glow">
+                    COMPASS ON
+                  </button>
+                )}
+              </div>
             </HudPanel>
           )}
 
@@ -158,6 +208,46 @@ export default function SurveyPage() {
                 marks={marks}
                 action={shots.length > 0 ? { label: "NEXT SPOT ›", onClick: nextSpot } : undefined}
               />
+            </HudPanel>
+          )}
+
+          {pin && (
+            <HudPanel className="flex flex-col gap-3">
+              <h2 className="font-hud text-xs tracking-[0.2em] text-muted">4 · NOTE ON A SIDE (OPTIONAL)</h2>
+              <div className="grid grid-cols-4 gap-1.5">
+                {SIDES.map((s) => (
+                  <button
+                    key={s.name}
+                    type="button"
+                    onClick={() => setNoteSide(s.name)}
+                    className={`rounded-lg border py-1.5 font-hud text-[10px] tracking-widest ${noteSide === s.name ? "border-glow bg-glow/20 text-glow" : "border-edge text-muted"}`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={noteText}
+                onChange={(e) => {
+                  setNoteText(e.target.value);
+                  setNoteState("idle");
+                }}
+                maxLength={500}
+                rows={3}
+                placeholder={`What's on the ${noteSide.toLowerCase()} side? e.g. "shoe rack, F6-26 is the middle door"`}
+                className="rounded-xl border border-edge bg-void px-3 py-2 text-sm text-ink outline-none placeholder:text-muted focus:border-glow"
+              />
+              <div className="flex items-center gap-3">
+                <CaptureButton size="small" label={notePhoto ? "Photo added ✓" : "Add photo (optional)"} onPhoto={setNotePhoto} />
+                <button
+                  type="button"
+                  onClick={saveNote}
+                  disabled={(!noteText.trim() && !notePhoto) || noteState === "saving"}
+                  className="flex-1 rounded-xl border border-glow bg-glow/15 py-2.5 font-hud text-xs tracking-[0.2em] text-glow disabled:opacity-40"
+                >
+                  {noteState === "saving" ? "SAVING…" : noteState === "saved" ? "SAVED ✓ · ADD ANOTHER" : noteState === "failed" ? "FAILED · TRY AGAIN" : "SAVE NOTE"}
+                </button>
+              </div>
             </HudPanel>
           )}
 

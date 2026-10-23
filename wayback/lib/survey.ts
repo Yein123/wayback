@@ -11,9 +11,16 @@ export type SurveyShot = {
   spotId: string | null;
   floor: string;
   pos: [number, number];
+  /** Height in floor levels (±0.5 inside a cube). */
+  level: number;
+  /** When pinned inside a cube: which cube, and the room the pin is in. */
+  cube: { hallway: string; side: string; stair: number; room: number | null } | null;
   side: string;
+  /** Which way the camera faced, degrees from north, if the phone has a compass. */
+  heading: number | null;
   gps: Gps | null;
-  photo: string; // JPEG data URL, ~640px
+  note: string;
+  photo: string | null; // JPEG data URL, ~640px; a side can be just a note
 };
 
 /** This browser's surveyor ID, and whether it's allowed to survey yet. */
@@ -27,9 +34,9 @@ export async function surveyAccess(): Promise<{ uid: string; allowed: boolean }>
   }
 }
 
-export async function uploadShot(shot: Omit<SurveyShot, "photo">, file: Blob): Promise<void> {
+export async function uploadShot(shot: Omit<SurveyShot, "photo">, file: Blob | null): Promise<void> {
   const { db, user } = await firebase();
-  const photo = await toDataUrl(await resizePhoto(file, 640, 0.7));
+  const photo = file ? await toDataUrl(await resizePhoto(file, 640, 0.7)) : null;
   await addDoc(collection(db, "survey"), { ...shot, photo, by: user.uid, createdAt: serverTimestamp() });
 }
 
