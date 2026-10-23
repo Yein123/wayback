@@ -11,6 +11,7 @@ service cloud.firestore {
     function surveyor() {
       return request.auth != null && request.auth.uid in [
         "hTZ0qnWZqcWcwkXlJNSee141hWp1", // laptop (Chrome)
+        "gVBinpEKc4bSca91T2sSDvTPou82", // learner's phone
       ];
     }
     match /survey/{id} {
