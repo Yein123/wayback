@@ -49,7 +49,7 @@ Build mode: fast
   Learner check: Capture and confirm a parking, close the tab, reopen the app, and check the card is still there with your photo; then capture again and see the first one move to history.
   Commit: `Save current parking and history in Firestore`
 
-- [ ] **5. Find my car, get help, and arrive**
+- [x] **5. Find my car, get help, and arrive**
   Becomes usable: The whole loop, on the laptop. "Find my car" asks you to snap where you are, locates you (with the same fixes), and walks you back by the shortest route. Help on any step re-locates you and gives fresh steps. After a lift or stairs step the app asks you to confirm the floor you're on ("On Floor 5 now?"), with "Not sure" to snap the lobby or a sign. Arrived on the last step ends the parking, moves it to history, and empties the card.
   Why now: It reuses matching, routing and storage and completes the journey you asked for; the wrong-guess fixes (slice 8) slot in later.
   PRD ref: `prd.md > The Core Journey` (steps 7–10), `prd.md > Finding the Car`, `prd.md > Help While Walking`, `prd.md > Arriving and Parking History`, `prd.md > Guiding to a Room` (changing floors)
@@ -59,14 +59,14 @@ Build mode: fast
   Learner check: On the laptop, capture a parking, go to F6-26 (confirming the floor after the lift), then Find my car with a photo from the path, follow it back, and tap Arrived.
   Commit: `Add find my car, help, and arrived`
 
-- [ ] **6. Capture four sides, pinned by GPS**
-  Becomes usable: Capture (parking, Find my car, Help / "I'm lost") guides you through four photos — front, right, back, left — and matches them together, so a spot must look right from several directions. When your phone has an accurate GPS fix and the building's GPS anchors are set, spots far from you are ruled out first. You can skip the remaining sides.
+- [ ] **6. Where to? and capture four sides, pinned by GPS**
+  Becomes usable: Capture (parking, Find my car, Help / "I'm lost") guides you through four photos — front, right, back, left — and matches them together, so a spot must look right from several directions. When your phone has an accurate GPS fix and the building's GPS anchors are set, spots far from you are ruled out first. You can skip the remaining sides. Home also gets a **Where to?** button (learner): type a room, capture the four sides where you are (with GPS), and the route starts from there — no parking needed.
   Why now: You asked for it to make locating reliable in identical-looking hallways and car park bays, and so being lost always leads back to a route. It builds on the matcher and the Help flow from slice 5.
   PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Help While Walking`, `prd.md > States and Boundaries` (no GPS signal)
   Spec ref: `spec.md > Components` (Location Matcher — four-side capture, GPS Stamp), `spec.md > Data Model` (Reference photos, Embeddings)
-  Build: Locate Flow four-shot capture with a side guide and Skip; `lib/scoring.ts` combines per-photo scores per spot (average) and filters by GPS distance when accuracy ≤ 20 m (pure, tested); `lib/gps.ts` converts lat/lng to map metres from `public/data/gps-anchors.json` (empty until the phone test, so the pin is off); Home, Find my car and Help use the same capture.
+  Build: Locate Flow four-shot capture with a side guide and Skip; `lib/scoring.ts` combines per-photo scores per spot (average) and filters by GPS distance when accuracy ≤ 20 m (pure, tested); `lib/gps.ts` converts lat/lng to map metres from `public/data/gps-anchors.json` (empty until the phone test, so the pin is off); Home, Find my car, Help and the new Where to? flow (`/destination` first, then the four-side locate, then Directions) use the same capture.
   Verify (mechanical): `npm test` passes scoring tests (the spot that matches most of the four photos beats one lucky match; a far spot is dropped with an accurate fix; no anchors or poor accuracy changes nothing); `npm run build` passes; in the browser, four reference photos from one spot give that spot, and Skip after one photo still works.
-  Learner check: Capture with four of your dorm photos on the laptop, then try Skip after one, and say whether the side guide is clear and the guess right.
+  Learner check: Tap Where to?, type F6-26, capture four of your dorm photos on the laptop, and follow the route; then capture a parking and try Skip after one photo. Say whether the side guide is clear and the guesses right.
   Commit: `Capture four sides and pin with GPS`
 
 - [ ] **7. Open Wayback on your phone at the dorm**
@@ -140,3 +140,4 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Firebase project `wayback-m06-1626` (display name wayback) created from the CLI at the learner's request after they signed in; Firestore in asia-southeast1; anonymous sign-in enabled by the learner in the console; rules deployed with `firebase deploy --only firestore:rules`.
 - `.env.local.example` is written but not committed: a plugin hook blocks git commands that mention .env files. The variable names are listed in `lib/firebase.ts`.
 - Survey mode added to slice 7 (learner): photos and GPS uploaded live to Firestore (free plan, shrunk photos) for importing as reference photos and GPS anchors. No model training is needed — CLIP is pretrained; it needs labelled reference photos.
+- Where to? flow added to slice 6 (learner): Home → type the destination → capture four sides where you are (+ GPS) → navigation starts. Works without a saved parking.
