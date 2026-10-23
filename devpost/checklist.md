@@ -19,7 +19,7 @@ Build mode: fast
   Learner check: Run `npm run dev`, open `http://localhost:3000` in your browser's phone view, tap Capture, pick one of your dorm photos, and see whether the guess and matched photo are right and whether the look feels like the HUD you pictured.
   Commit: `Match a snapped photo to a dorm spot with in-browser CLIP`
 
-- [ ] **2. Type your room and follow the steps there**
+- [x] **2. Type your room and follow the steps there**
   Becomes usable: After ✓ on a parking guess, you type `F6-26` and walk through the shortest route one step at a time — car park → SE entrance → lift lobby → Lift to 5 → turn right → SE hallway → stair 2, half a flight up → third door — each with a glowing diagram, Next, and "Step 2 / 7".
   Why now: The route is the second half of the kernel. Doing it right after matching means the full "where am I → how do I get there" idea works on screen early, before storage or polish.
   PRD ref: `prd.md > The Core Journey` (steps 4–6), `prd.md > Guiding to a Room`, `prd.md > States and Boundaries` (room not on the map)
@@ -97,4 +97,6 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Tailwind v4 theme lives in `app/globals.css` (`@theme`), no `tailwind.config.ts` — Tailwind v4 dropped the JS config file.
 - Vitest 4 instead of 5 — Vitest 5 needs Node 22+, and this machine has Node 20.16; `.npmrc` sets `legacy-peer-deps` and the Windows rolldown binding is pinned to work around an npm 10.8 install bug.
 - The NE and SW cube photos aren't in the reference set yet, and SE stairs 1–3 match each other closely (0.786 vs 0.775 for stair 2) — sign reading in slice 4 is what separates them.
+- Car park entrances and the B2 path (SW/NW entrance → B2 hallway → B2 lift lobby) built from the spec's facts after two unanswered questions — the B2 hallway leg and all walking costs are assumptions to confirm on the phone at the dorm in slice 3. Lift steps say "any lift" instead of highlighting one, since all four lifts stop at the same floors; the floor 5 turn follows the "F6-25 – F6-40 →" sign rather than left/right, because the lifts face each other.
+- Trip State is a small `useSyncExternalStore` store in `lib/trip.ts` instead of a React context provider — same sessionStorage behavior with less wiring.
 

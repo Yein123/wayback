@@ -1,15 +1,78 @@
 {
   "building": "USM Desasiswa Tekun · Block M06",
   "spots": [
+    { "id": "cp-se", "label": "Car Park · SE Side", "floor": "1", "type": "parking", "signText": [] },
     { "id": "cp-sw", "label": "Car Park · SW Side", "floor": "B2", "type": "parking", "signText": ["MO6", "M06", "TEKUN"] },
+    { "id": "cp-nw", "label": "Car Park · NW Side", "floor": "B2", "type": "parking", "signText": [] },
     { "id": "entrance-se", "label": "SE Entrance · Floor 1", "floor": "1", "type": "entrance", "signText": ["DATARAN", "USAHAWAN"] },
+    { "id": "entrance-sw", "label": "SW Entrance · B2", "floor": "B2", "type": "entrance", "signText": [] },
+    { "id": "entrance-nw", "label": "NW Entrance · B2", "floor": "B2", "type": "entrance", "signText": [] },
     { "id": "hall-1-se", "label": "Floor 1 · SE Hallway", "floor": "1", "type": "hallway", "signText": ["F2-37", "F2-40", "F2-41"] },
+    { "id": "hall-b2-sw", "label": "B2 · SW Hallway", "floor": "B2", "type": "hallway", "signText": [] },
+    { "id": "hall-b2-nw", "label": "B2 · NW Hallway", "floor": "B2", "type": "hallway", "signText": [] },
+    { "id": "lobby-1", "label": "Floor 1 · Lift Lobby", "floor": "1", "type": "lobby", "signText": [] },
+    { "id": "lobby-b2", "label": "B2 · Lift Lobby", "floor": "B2", "type": "lobby", "signText": [] },
     { "id": "lobby-5", "label": "Floor 5 · Lift Lobby", "floor": "5", "type": "lobby", "signText": ["ARAS", "F6-25", "F6-40", "F6-09", "F6-24", "F6-01", "F6-08", "F6-41", "F6-48"] },
     { "id": "se-stair-1", "label": "SE Hallway · Stair 1 (down)", "floor": "5", "type": "hallway", "signText": ["F5-25", "F5-28", "F5-37", "F5-40"] },
     { "id": "se-stair-2", "label": "SE Hallway · Stair 2 (up)", "floor": "5", "type": "hallway", "signText": ["F6-25", "F6-28", "F6-37", "F6-40"] },
     { "id": "se-stair-3", "label": "SE Hallway · Stair 3 (up)", "floor": "5", "type": "hallway", "signText": ["F6-29", "F6-32", "F6-33", "F6-36"] },
     { "id": "se-stair-4", "label": "SE Hallway · Stair 4 (down)", "floor": "5", "type": "hallway", "signText": ["F5-29", "F5-32", "F5-33", "F5-36"] },
-    { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [] }
+    { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [] },
+    { "id": "room-f6-26", "label": "Room F6-26", "floor": "6", "type": "room", "room": "F6-26" }
   ],
-  "links": []
+  "links": [
+    { "from": "cp-se", "to": "entrance-se", "cost": 30, "instruction": "Walk to the SE entrance", "diagram": { "kind": "door", "label": "SE ENTRANCE" } },
+    { "from": "entrance-se", "to": "cp-se", "cost": 30, "instruction": "Walk out of the SE entrance to the car park", "diagram": { "kind": "door", "label": "CAR PARK" } },
+
+    { "from": "entrance-se", "to": "hall-1-se", "cost": 20, "instruction": "Walk in along the hallway toward the lifts", "diagram": { "kind": "walk", "label": "TO LIFTS" } },
+    { "from": "hall-1-se", "to": "entrance-se", "cost": 20, "instruction": "Walk along the hallway to the SE exit", "diagram": { "kind": "walk", "label": "SE EXIT" } },
+
+    { "from": "hall-1-se", "to": "lobby-1", "cost": 10, "instruction": "Continue to the lift lobby", "diagram": { "kind": "lifts", "count": 4, "highlight": -1 } },
+    { "from": "lobby-1", "to": "hall-1-se", "cost": 10, "instruction": "Walk into the SE hallway, toward the KELUAR exit", "diagram": { "kind": "walk", "label": "SE HALLWAY" } },
+
+    { "from": "cp-sw", "to": "entrance-sw", "cost": 30, "instruction": "Walk to the SW entrance", "diagram": { "kind": "door", "label": "SW ENTRANCE" } },
+    { "from": "entrance-sw", "to": "cp-sw", "cost": 30, "instruction": "Walk out of the SW entrance to the car park", "diagram": { "kind": "door", "label": "CAR PARK" } },
+
+    { "from": "entrance-sw", "to": "hall-b2-sw", "cost": 25, "instruction": "Walk in along the SW hallway toward the lifts", "diagram": { "kind": "walk", "label": "TO LIFTS" } },
+    { "from": "hall-b2-sw", "to": "entrance-sw", "cost": 25, "instruction": "Walk along the hallway to the SW exit", "diagram": { "kind": "walk", "label": "SW EXIT" } },
+
+    { "from": "hall-b2-sw", "to": "lobby-b2", "cost": 10, "instruction": "Continue to the lift lobby", "diagram": { "kind": "lifts", "count": 4, "highlight": -1 } },
+    { "from": "lobby-b2", "to": "hall-b2-sw", "cost": 10, "instruction": "Walk into the SW hallway, toward the exit", "diagram": { "kind": "walk", "label": "SW HALLWAY" } },
+
+    { "from": "cp-nw", "to": "entrance-nw", "cost": 30, "instruction": "Walk to the NW entrance", "diagram": { "kind": "door", "label": "NW ENTRANCE" } },
+    { "from": "entrance-nw", "to": "cp-nw", "cost": 30, "instruction": "Walk out of the NW entrance to the car park", "diagram": { "kind": "door", "label": "CAR PARK" } },
+
+    { "from": "entrance-nw", "to": "hall-b2-nw", "cost": 25, "instruction": "Walk in along the NW hallway toward the lifts", "diagram": { "kind": "walk", "label": "TO LIFTS" } },
+    { "from": "hall-b2-nw", "to": "entrance-nw", "cost": 25, "instruction": "Walk along the hallway to the NW exit", "diagram": { "kind": "walk", "label": "NW EXIT" } },
+
+    { "from": "hall-b2-nw", "to": "lobby-b2", "cost": 10, "instruction": "Continue to the lift lobby", "diagram": { "kind": "lifts", "count": 4, "highlight": -1 } },
+    { "from": "lobby-b2", "to": "hall-b2-nw", "cost": 10, "instruction": "Walk into the NW hallway, toward the exit", "diagram": { "kind": "walk", "label": "NW HALLWAY" } },
+
+    { "from": "lobby-1", "to": "lobby-5", "cost": 45, "instruction": "Take any lift up to Floor 5", "diagram": { "kind": "lift-ride", "from": "1", "to": "5" } },
+    { "from": "lobby-5", "to": "lobby-1", "cost": 45, "instruction": "Take any lift down to Floor 1", "diagram": { "kind": "lift-ride", "from": "5", "to": "1" } },
+
+    { "from": "lobby-b2", "to": "lobby-5", "cost": 55, "instruction": "Take any lift up to Floor 5", "diagram": { "kind": "lift-ride", "from": "B2", "to": "5" } },
+    { "from": "lobby-5", "to": "lobby-b2", "cost": 55, "instruction": "Take any lift down to B2", "diagram": { "kind": "lift-ride", "from": "5", "to": "B2" } },
+
+    { "from": "lobby-1", "to": "lobby-b2", "cost": 30, "instruction": "Take any lift down to B2", "diagram": { "kind": "lift-ride", "from": "1", "to": "B2" } },
+    { "from": "lobby-b2", "to": "lobby-1", "cost": 30, "instruction": "Take any lift up to Floor 1", "diagram": { "kind": "lift-ride", "from": "B2", "to": "1" } },
+
+    { "from": "lobby-5", "to": "se-stair-1", "cost": 15, "instruction": "Follow the sign F6-25 – F6-40 → into the SE hallway", "diagram": { "kind": "turn", "dir": "right", "sign": "F6-25 – F6-40" } },
+    { "from": "se-stair-1", "to": "lobby-5", "cost": 15, "instruction": "Walk back along the SE hallway to the lift lobby", "diagram": { "kind": "walk", "label": "LIFT LOBBY" } },
+
+    { "from": "se-stair-1", "to": "se-stair-2", "cost": 8, "instruction": "Pass the first stairs (F5-25 – 28) and keep going to the second", "diagram": { "kind": "walk", "label": "STAIR 2" } },
+    { "from": "se-stair-2", "to": "se-stair-1", "cost": 8, "instruction": "Walk toward the lifts, past the first stairs", "diagram": { "kind": "walk", "label": "TO LIFTS" } },
+
+    { "from": "se-stair-2", "to": "se-stair-3", "cost": 8, "instruction": "Keep going away from the lifts to the third stairs", "diagram": { "kind": "walk", "label": "STAIR 3" } },
+    { "from": "se-stair-3", "to": "se-stair-2", "cost": 8, "instruction": "Walk toward the lifts to the second stairs", "diagram": { "kind": "walk", "label": "STAIR 2" } },
+
+    { "from": "se-stair-3", "to": "se-stair-4", "cost": 8, "instruction": "Keep going to the last stairs at the end of the hallway", "diagram": { "kind": "walk", "label": "STAIR 4" } },
+    { "from": "se-stair-4", "to": "se-stair-3", "cost": 8, "instruction": "Walk toward the lifts to the third stairs", "diagram": { "kind": "walk", "label": "STAIR 3" } },
+
+    { "from": "se-stair-2", "to": "cube-f6-25", "cost": 10, "instruction": "Take the stairs on your left half a flight up, into cube F6-25 – 28", "diagram": { "kind": "half-stairs", "dir": "up", "side": "left" } },
+    { "from": "cube-f6-25", "to": "se-stair-2", "cost": 10, "instruction": "Go half a flight down to the SE hallway, then turn right toward the lifts", "diagram": { "kind": "half-stairs", "dir": "down", "side": "right" } },
+
+    { "from": "cube-f6-25", "to": "room-f6-26", "cost": 8, "instruction": "Walk in: the third door is F6-26", "diagram": { "kind": "cube", "door": 3, "label": "F6-26" } },
+    { "from": "room-f6-26", "to": "cube-f6-25", "cost": 8, "instruction": "Walk back past two doors to the cube stairs", "diagram": { "kind": "walk", "label": "CUBE STAIRS" } }
+  ]
 }

@@ -207,7 +207,7 @@ PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Arriving and Parking H
 PRD ref: `prd.md > Capturing the Parking Spot` (GPS supporting only).
 
 ### Trip State
-`lib/trip.tsx`. A React context in the root layout holding the current trip:
+`lib/trip.ts`. A small store read with `useTrip()` (no provider needed) holding the current trip:
 - `mode`: `toRoom` or `toCar`
 - `from`
 - `to`
@@ -381,7 +381,7 @@ wayback/
 │   ├── map.ts                # loads dorm-map.json, spot lookups
 │   ├── image.ts              # resize photo, make thumbnail
 │   ├── gps.ts                # GPS Stamp
-│   └── trip.tsx              # Trip State context + sessionStorage
+│   └── trip.ts               # Trip State store (useSyncExternalStore) + sessionStorage
 ├── public/
 │   ├── data/
 │   │   ├── dorm-map.json         # hand-written map

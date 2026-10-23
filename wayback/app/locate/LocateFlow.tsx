@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import CaptureButton from "@/components/CaptureButton";
 import HudPanel from "@/components/HudPanel";
 import ModelStatusLine from "@/components/ModelStatusLine";
@@ -27,6 +27,7 @@ const prompts: Record<Mode, string> = {
 };
 
 export default function LocateFlow() {
+  const router = useRouter();
   const mode = (useSearchParams().get("mode") as Mode | null) ?? "park";
   // A photo handed over from Home starts straight in the "working" step.
   const [handedOver] = useState(peekPendingPhoto);
@@ -91,7 +92,15 @@ export default function LocateFlow() {
         </section>
       )}
 
-      {step.kind === "result" && <Result step={step} onConfirm={(guess) => setStep({ kind: "confirmed", guess })} />}
+      {step.kind === "result" && (
+        <Result
+          step={step}
+          onConfirm={(guess) => {
+            if (mode === "park") router.push(`/destination?from=${guess.spotId}`);
+            else setStep({ kind: "confirmed", guess });
+          }}
+        />
+      )}
 
       {step.kind === "confirmed" && (
         <HudPanel className="text-center">
