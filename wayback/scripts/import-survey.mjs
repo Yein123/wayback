@@ -16,8 +16,6 @@ const tagsPath = path.join(root, "public/data/reference-photos.json");
 const anchorsPath = path.join(root, "public/data/gps-anchors.json");
 const tags = JSON.parse(await readFile(tagsPath, "utf8"));
 const known = new Set(tags.map((t) => t.file));
-const surveyedShots = pack.shots.filter((s) => s.photo && s.spotId);
-if (surveyedShots.some((s) => s.note?.startsWith("TEST note"))) console.log("(skipping test notes)");
 
 let added = 0;
 const newPlaces = [];
