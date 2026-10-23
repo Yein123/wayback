@@ -15,3 +15,14 @@ export async function resizePhoto(file: Blob, maxSide = 448, quality = 0.85): Pr
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not read photo"))), "image/jpeg", quality),
   );
 }
+
+/** A small JPEG data URL (~20–40 KB) to store inside a Firestore record. */
+export async function makeThumb(file: Blob): Promise<string> {
+  const small = await resizePhoto(file, 320, 0.6);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not make a thumbnail"));
+    reader.readAsDataURL(small);
+  });
+}

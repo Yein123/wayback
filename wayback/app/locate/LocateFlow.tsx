@@ -6,8 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import CaptureButton from "@/components/CaptureButton";
 import HudPanel from "@/components/HudPanel";
 import ModelStatusLine from "@/components/ModelStatusLine";
+import { getGps, type Gps } from "@/lib/gps";
+import { makeThumb } from "@/lib/image";
 import { getSpot } from "@/lib/map";
 import { matchPhoto } from "@/lib/matcher";
+import { saveParking } from "@/lib/parkings";
 import { clearPendingPhoto, peekPendingPhoto } from "@/lib/pendingPhoto";
 import type { SpotGuess } from "@/lib/scoring";
 
@@ -16,7 +19,8 @@ type Mode = "park" | "car" | "help";
 type Step =
   | { kind: "snap" }
   | { kind: "working"; photoUrl: string }
-  | { kind: "result"; photoUrl: string; guesses: SpotGuess[] }
+  | { kind: "result"; photoUrl: string; file: File; guesses: SpotGuess[] }
+  | { kind: "saving" }
   | { kind: "confirmed"; guess: SpotGuess }
   | { kind: "error"; message: string };
 
@@ -35,10 +39,14 @@ export default function LocateFlow() {
     handedOver ? { kind: "working", photoUrl: URL.createObjectURL(handedOver) } : { kind: "snap" },
   );
 
+  // GPS is asked for while the photo is being matched, and only read when saving.
+  const gps = useRef<Promise<Gps | null> | null>(null);
+
   const runMatch = useCallback(async (file: File, photoUrl: string) => {
+    gps.current = getGps();
     try {
       const guesses = await matchPhoto(file);
-      setStep({ kind: "result", photoUrl, guesses });
+      setStep({ kind: "result", photoUrl, file, guesses });
     } catch (err) {
       setStep({ kind: "error", message: err instanceof Error ? err.message : String(err) });
     }
@@ -95,12 +103,21 @@ export default function LocateFlow() {
       {step.kind === "result" && (
         <Result
           step={step}
-          onConfirm={(guess) => {
-            if (mode === "park") router.push(`/destination?from=${guess.spotId}`);
-            else setStep({ kind: "confirmed", guess });
+          onConfirm={async (guess) => {
+            if (mode !== "park") return setStep({ kind: "confirmed", guess });
+            setStep({ kind: "saving" });
+            try {
+              const [thumb, fix] = await Promise.all([makeThumb(step.file), gps.current ?? Promise.resolve(null)]);
+              await saveParking({ spotId: guess.spotId, label: getSpot(guess.spotId)?.label ?? guess.spotId, thumb, gps: fix });
+              router.push(`/destination?from=${guess.spotId}`);
+            } catch (err) {
+              setStep({ kind: "error", message: `Couldn't save your parking: ${err instanceof Error ? err.message : String(err)}` });
+            }
           }}
         />
       )}
+
+      {step.kind === "saving" && <p className="text-center font-hud text-sm tracking-[0.2em] text-glow">SAVING YOUR SPOT…</p>}
 
       {step.kind === "confirmed" && (
         <HudPanel className="text-center">

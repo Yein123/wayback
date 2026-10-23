@@ -3,13 +3,16 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CaptureButton from "@/components/CaptureButton";
-import HudPanel from "@/components/HudPanel";
+import HistoryList from "@/components/HistoryList";
 import ModelStatusLine from "@/components/ModelStatusLine";
+import ParkingCard from "@/components/ParkingCard";
 import { warmUp } from "@/lib/matcher";
+import { useParkings } from "@/lib/parkings";
 import { setPendingPhoto } from "@/lib/pendingPhoto";
 
 export default function Home() {
   const router = useRouter();
+  const { loading, current, history, error } = useParkings();
 
   useEffect(() => {
     warmUp();
@@ -35,15 +38,9 @@ export default function Home() {
         <ModelStatusLine />
       </section>
 
-      <HudPanel>
-        <h2 className="font-hud text-xs tracking-[0.2em] text-muted">CURRENT PARKING</h2>
-        <p className="mt-3 text-sm text-muted">Tap Capture when you park.</p>
-      </HudPanel>
-
-      <HudPanel tone="violet">
-        <h2 className="font-hud text-xs tracking-[0.2em] text-muted">PARKING HISTORY</h2>
-        <p className="mt-3 text-sm text-muted">No trips yet.</p>
-      </HudPanel>
+      <ParkingCard parking={current} loading={loading} />
+      {error && <p className="text-xs text-amber">Couldn&apos;t load your parkings: {error}</p>}
+      <HistoryList history={history} />
     </main>
   );
 }
