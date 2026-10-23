@@ -66,6 +66,47 @@ export function cubes(): Cube[] {
   );
 }
 
+/** A cube's footprint: `width` along the hallway, `depth` away from it. */
+export const CUBE = { width: 12, depth: 5 };
+
+/** Where you step in from the hallway: the gap between the toilet and the stairs. */
+export const CUBE_ENTRY_X = 0.9;
+
+/**
+ * A point inside a cube, read off the learner's floor plan with the hallway along the top:
+ * `x` is metres across the plan (− = the plan's left, which is your right as you walk in),
+ * `d` is metres in from the hallway edge.
+ */
+export function cubePoint(c: Cube, x: number, d: number): [number, number] {
+  const len = Math.hypot(c.center[0] - c.door[0], c.center[1] - c.door[1]);
+  const f = [(c.center[0] - c.door[0]) / len, (c.center[1] - c.door[1]) / len]; // walking in
+  const yourLeft = [f[1], -f[0]];
+  const nx = c.center[0] - f[0] * (CUBE.depth / 2);
+  const ny = c.center[1] - f[1] * (CUBE.depth / 2);
+  return [nx + yourLeft[0] * x + f[0] * d, ny + yourLeft[1] * x + f[1] * d];
+}
+
+export type CubePart = { kind: "room" | "toilet" | "stairs"; room?: number; x: [number, number]; d: [number, number] };
+
+/**
+ * Inside every cube (learner's plan, 2 floors): you enter between the toilet and the stairs into a
+ * T-shaped corridor; rooms 4 and 1 at the two ends, rooms 3 and 2 along the back.
+ * Floor 2 is the same with the toilet and the stairs swapped.
+ */
+export function cubePlan(floor: 1 | 2): CubePart[] {
+  const left: [number, number] = [-4.1, 0.47];
+  const right: [number, number] = [1.33, 4.17];
+  const top: [number, number] = [0, 1.8];
+  return [
+    { kind: "toilet", x: floor === 1 ? left : right, d: top },
+    { kind: "stairs", x: floor === 1 ? right : left, d: top },
+    { kind: "room", room: 4, x: [-5.94, -4.17], d: [1.1, 4.9] },
+    { kind: "room", room: 3, x: [-3.22, -0.04], d: [2.8, 4.9] },
+    { kind: "room", room: 2, x: [0.06, 3.35], d: [2.8, 4.9] },
+    { kind: "room", room: 1, x: [4.17, 5.94], d: [1.1, 4.9] },
+  ];
+}
+
 /** Floors as stacking levels: B2 → -2, B1 → -1, 1 → 0, 5 → 4, 10 → 9. */
 export function floorLevel(floor: string): number {
   return floor.startsWith("B") ? -Number(floor.slice(1)) : Number(floor) - 1;

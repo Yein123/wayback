@@ -4,11 +4,12 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName } from "@/lib/building";
+import { CUBE, CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube } from "@/lib/building";
 import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
 import type { Step } from "@/lib/route";
 
 const FH = 7; // world units per floor (stretched so the tower reads as a tower)
+const CUBE_H = FH * 0.84; // a cube is two short storeys
 const GLOW = "#3EE6F2";
 const VIOLET = "#9B7BFF";
 const VOID = "#070B12";
@@ -179,6 +180,7 @@ function Scene({
   const out = useRef(1);
   const lookAt = useRef(towerCenter.clone());
   const spin = useRef(0);
+  const close = useRef(0);
 
   useEffect(() => {
     walkedRef.current = onWalked;
@@ -222,6 +224,8 @@ function Scene({
   const end = useMemo(() => toWorld(getSpot(steps.at(-1)!.to)!), [steps]);
   const beacon = useRef<THREE.Mesh>(null);
   const ring = useRef<THREE.Mesh>(null);
+  const detail = useMemo(() => cubeDetail(steps), [steps]);
+  const detailGroup = useRef<THREE.Group>(null);
 
   useFrame((state, dt) => {
     const now = performance.now();
@@ -274,6 +278,9 @@ function Scene({
       l.edge.opacity += (edge - l.edge.opacity) * 0.1;
       l.edge.color.lerp(current || wide ? l.color : GREY, 0.1);
     }
+    if (detailGroup.current && detail) {
+      detailGroup.current.visible = overview || out.current > 0.5 || detail.level <= Math.floor(here) + 0.5;
+    }
 
     // camera: intro orbit → dive → follow; overview flies back out
     const sinceOpen = now - mounted.current;
@@ -286,8 +293,15 @@ function Scene({
     const l = look.current;
     const fwd = new THREE.Vector3(Math.cos(heading.current), 0, Math.sin(heading.current));
     // Behind you by default; dragging swings the camera around you.
-    const followPos = p.clone().add(around(heading.current + Math.PI + l.yaw, 0.9 + l.pitch, 38 * l.zoom));
-    const followLook = p.clone().addScaledVector(fwd, l.yaw === 0 ? 10 : 0);
+    // Stepping into a cube, the camera comes in close and looks down so you can read its floor plan.
+    const step = steps[w?.index ?? stepIndex];
+    const inCube = [step.from, step.to].some((id) => ["cube", "room"].includes(getSpot(id)?.type ?? ""));
+    close.current += ((inCube ? 1 : 0) - close.current) * (1 - Math.exp(-dt * 2));
+    const c = close.current;
+    you.current?.scale.setScalar(1 - c * 0.55);
+    const pitch = clamp(0.9 + c * 0.35 + l.pitch, 0.25, 1.45); // never past straight down
+    const followPos = p.clone().add(around(heading.current + Math.PI + l.yaw, pitch, (38 - c * 18) * l.zoom));
+    const followLook = p.clone().addScaledVector(fwd, l.yaw === 0 ? 10 * (1 - c) : 0);
     // The overview spins slowly on its own until you grab it.
     if (now - l.touchedAt > 3000) spin.current += dt * 0.25;
     const overPos = towerCenter.clone().add(around(spin.current + l.yaw, 0.5 + l.pitch, 200 * l.zoom));
@@ -302,8 +316,9 @@ function Scene({
 
     // destination beacon pulse
     const pulse = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.15;
-    ring.current?.scale.set(pulse, pulse, pulse);
-    if (beacon.current) (beacon.current.material as THREE.MeshBasicMaterial).opacity = 0.18 + Math.sin(state.clock.elapsedTime * 2) * 0.06;
+    ring.current?.scale.setScalar(pulse * (1 - close.current * 0.6));
+    // The light beam marks the room from afar; once you're at the cube it would only block the view.
+    if (beacon.current) (beacon.current.material as THREE.MeshBasicMaterial).opacity = (0.18 + Math.sin(state.clock.elapsedTime * 2) * 0.06) * (1 - close.current);
   });
 
   return (
@@ -327,6 +342,18 @@ function Scene({
       {route.done && <Tube tube={route.done} color={VIOLET} opacity={0.6} />}
       {route.ahead && <Tube tube={route.ahead} color={GLOW} opacity={0.75} />}
       {route.now && <Tube tube={route.now} color={GLOW} opacity={1} wide />}
+
+      {/* the cube on your route, with its rooms, toilet and stairs */}
+      {detail && (
+        <group ref={detailGroup}>
+          {detail.parts.slabs && <Part geo={detail.parts.slabs} fill="#0E2030" fillOpacity={0.6} edge={GLOW} edgeOpacity={0.35} />}
+          {detail.parts.rooms && <Part geo={detail.parts.rooms} fill="#0F3A44" fillOpacity={0.35} edge="#46D9E6" edgeOpacity={0.85} />}
+          {detail.parts.toilet && <Part geo={detail.parts.toilet} fill="#26313D" fillOpacity={0.5} edge="#8FA1AD" edgeOpacity={0.7} />}
+          {detail.parts.stairs && <Part geo={detail.parts.stairs} fill={VIOLET} fillOpacity={0.35} edge={VIOLET} edgeOpacity={0.95} />}
+          {detail.parts.upper && <Part geo={detail.parts.upper} fill="#1A2633" fillOpacity={0.08} edge="#3A4656" edgeOpacity={0.35} />}
+          {detail.parts.target && <Part geo={detail.parts.target} fill={GLOW} fillOpacity={0.4} edge={GLOW} edgeOpacity={1} />}
+        </group>
+      )}
 
       {/* destination */}
       <mesh ref={beacon} position={[end.x, end.y + 30, end.z]}>
@@ -364,6 +391,31 @@ function Tube({ tube, color, opacity, wide }: { tube: RouteTube; color: string; 
       <mesh geometry={tube.glow}>
         <meshBasicMaterial color={color} transparent opacity={wide ? 0.3 : 0.12} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
+    </group>
+  );
+}
+
+function Part({
+  geo,
+  fill,
+  fillOpacity,
+  edge,
+  edgeOpacity,
+}: {
+  geo: { fill: THREE.BufferGeometry; edge: THREE.BufferGeometry };
+  fill: string;
+  fillOpacity: number;
+  edge: string;
+  edgeOpacity: number;
+}) {
+  return (
+    <group>
+      <mesh geometry={geo.fill}>
+        <meshBasicMaterial color={fill} transparent opacity={fillOpacity} depthWrite={false} />
+      </mesh>
+      <lineSegments geometry={geo.edge}>
+        <lineBasicMaterial color={edge} transparent opacity={edgeOpacity} toneMapped={false} />
+      </lineSegments>
     </group>
   );
 }
@@ -434,13 +486,14 @@ function buildLayers(): Layer[] {
     for (const c of allCubes) {
       const base = (level + c.half) * FH;
       const angle = (c.angle * Math.PI) / 180;
-      add(level + c.half, { center: [c.center[0], base + FH * 0.42, c.center[1]], size: [10, FH * 0.84, 8], angle });
-      // half a flight from the hallway's edge up (or down) to the cube's floor
+      add(level + c.half, { center: [c.center[0], base + CUBE_H / 2, c.center[1]], size: [CUBE.width, CUBE_H, CUBE.depth], angle });
+      // half a flight from the hallway's edge up (or down) to the cube's entry gap
       const len = Math.hypot(c.center[0] - c.door[0], c.center[1] - c.door[1]);
       const [vx, vy] = [(c.center[0] - c.door[0]) / len, (c.center[1] - c.door[1]) / len];
-      const from: [number, number] = [c.door[0] + vx * 2.5, c.door[1] + vy * 2.5];
-      const to: [number, number] = [c.center[0] - vx * 4, c.center[1] - vy * 4];
-      for (const b of flight(from, to, level * FH, c.half * FH, 1.8)) add(level + c.half, b);
+      const to = cubePoint(c, CUBE_ENTRY_X, 0);
+      const run = len - CUBE.depth / 2 - 2.5;
+      const from: [number, number] = [to[0] - vx * run, to[1] - vy * run];
+      for (const b of flight(from, to, level * FH, c.half * FH, 1.4)) add(level + c.half, b);
     }
   }
 
@@ -456,23 +509,14 @@ function buildLayers(): Layer[] {
   }
 
   return [...boxes].map(([level, list]) => {
-    const fills: THREE.BufferGeometry[] = [];
-    const edges: THREE.BufferGeometry[] = [];
-    for (const b of list) {
-      const geo = new THREE.BoxGeometry(...b.size);
-      const m = new THREE.Matrix4().compose(
-        new THREE.Vector3(...b.center),
-        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -(b.angle ?? 0)),
-        new THREE.Vector3(1, 1, 1),
-      );
-      edges.push(new THREE.EdgesGeometry(geo).applyMatrix4(m));
-      fills.push(geo.applyMatrix4(m));
-    }
+    const merged = mergeBoxes(list);
     const isFloor = Number.isInteger(level);
+    // Calm steel for the structure; only the route and the cube you're heading to glow.
+    const lit = isFloor ? "#5E7FA3" : "#6F78B8";
     return {
       level,
-      fillGeometry: mergeGeometries(fills)!,
-      edgeGeometry: mergeGeometries(edges)!,
+      fillGeometry: merged.fill,
+      edgeGeometry: merged.edge,
       fill: new THREE.MeshStandardMaterial({
         color: isFloor ? "#13283d" : "#182c45",
         emissive: isFloor ? "#06202c" : "#0d1838",
@@ -480,10 +524,79 @@ function buildLayers(): Layer[] {
         opacity: 0.2,
         depthWrite: false,
       }),
-      edge: new THREE.LineBasicMaterial({ color: isFloor ? GLOW : "#7f9cff", transparent: true, opacity: 0.2 }),
-      color: new THREE.Color(isFloor ? GLOW : "#7f9cff"),
+      edge: new THREE.LineBasicMaterial({ color: lit, transparent: true, opacity: 0.2 }),
+      color: new THREE.Color(lit),
     };
   });
+}
+
+function mergeBoxes(list: Box[]): { fill: THREE.BufferGeometry; edge: THREE.BufferGeometry } {
+  const fills: THREE.BufferGeometry[] = [];
+  const edges: THREE.BufferGeometry[] = [];
+  for (const b of list) {
+    const geo = new THREE.BoxGeometry(...b.size);
+    const m = new THREE.Matrix4().compose(
+      new THREE.Vector3(...b.center),
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -(b.angle ?? 0)),
+      new THREE.Vector3(1, 1, 1),
+    );
+    edges.push(new THREE.EdgesGeometry(geo).applyMatrix4(m));
+    fills.push(geo.applyMatrix4(m));
+  }
+  return { fill: mergeGeometries(fills)!, edge: mergeGeometries(edges)! };
+}
+
+type CubeDetail = {
+  level: number;
+  parts: Record<"slabs" | "rooms" | "target" | "toilet" | "stairs" | "upper", { fill: THREE.BufferGeometry; edge: THREE.BufferGeometry } | null>;
+};
+
+/**
+ * The cube your route goes into, drawn from the learner's plan: two floors, each with
+ * rooms 1–4, the toilet and the stairs (swapped on floor 2), and your room picked out.
+ */
+function cubeDetail(steps: Step[]): CubeDetail | null {
+  const ids = steps.flatMap((s) => [s.from, s.to]);
+  const spot = ids.map((id) => getSpot(id)!).find((s) => s.type === "cube");
+  if (!spot) return null;
+  const room = ids.map((id) => getSpot(id)!).find((s) => s.type === "room");
+  // F6-25 … F6-28 are rooms 1 … 4 of their cube.
+  const target = room?.room ? ((Number(room.room.split("-")[1]) - 1) % 4) + 1 : null;
+
+  const near = (c: Cube) => Math.hypot(c.center[0] - spot.pos[0], c.center[1] - spot.pos[1]);
+  const cube = cubes().reduce((a, b) => (near(b) < near(a) ? b : a));
+  const level = spotLevel(spot);
+  const angle = (cube.angle * Math.PI) / 180;
+  const storey = CUBE_H / 2;
+
+  const groups: Record<keyof CubeDetail["parts"], Box[]> = { slabs: [], rooms: [], target: [], toilet: [], stairs: [], upper: [] };
+  const area = (x: [number, number], d: [number, number], y: number, h: number): Box => {
+    const [cx, cz] = cubePoint(cube, (x[0] + x[1]) / 2, (d[0] + d[1]) / 2);
+    return { center: [cx, y + h / 2, cz], size: [x[1] - x[0], h, d[1] - d[0]], angle };
+  };
+  for (const floor of [1, 2] as const) {
+    const y = level * FH + (floor - 1) * storey;
+    // Floor 2 is drawn faintly as one piece so the floor you walk in on reads clearly from above.
+    const into = (key: keyof CubeDetail["parts"]) => (floor === 1 ? groups[key] : groups.upper);
+    into("slabs").push(area([-CUBE.width / 2, CUBE.width / 2], [0, CUBE.depth], y - 0.15, 0.15));
+    for (const part of cubePlan(floor)) {
+      if (part.kind === "stairs") {
+        // floor 1: up toward the hallway side; floor 2: the top of the same flight
+        const mid = (part.x[0] + part.x[1]) / 2;
+        const [a, b] = [cubePoint(cube, mid, part.d[1]), cubePoint(cube, mid, part.d[0])];
+        const flightBoxes = floor === 1 ? flight(a, b, y, storey / 2, part.x[1] - part.x[0], 6) : flight(b, a, y, -storey / 2, part.x[1] - part.x[0], 6);
+        into("stairs").push(...flightBoxes);
+      } else {
+        const walls = area(part.x, part.d, y, storey * 0.8);
+        if (part.kind === "room" && part.room === target && floor === 1) groups.target.push(walls);
+        else into(part.kind === "room" ? "rooms" : "toilet").push(walls);
+      }
+    }
+  }
+  const parts = Object.fromEntries(
+    Object.entries(groups).map(([k, list]) => [k, list.length ? mergeBoxes(list) : null]),
+  ) as CubeDetail["parts"];
+  return { level, parts };
 }
 
 /** A flight of stairs from `a` to `b` (map points), starting at height y0 and climbing `rise` (negative goes down). */

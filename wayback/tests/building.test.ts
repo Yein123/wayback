@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cubes, FLOORS, floorLevel, hallwayPath, levelName } from "@/lib/building";
+import { CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, hallwayPath, levelName } from "@/lib/building";
 import { getSpot, spotLevel } from "@/lib/map";
 
 describe("building", () => {
@@ -22,9 +22,21 @@ describe("building", () => {
   it("puts the demo cube on the left of SE stair 2, half a flight above floor 5", () => {
     const cube = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "left")!;
     const spot = getSpot("cube-f6-25")!;
-    expect(Math.hypot(cube.center[0] - spot.pos[0], cube.center[1] - spot.pos[1])).toBeLessThan(1.5);
+    // the cube spot is just inside its entry gap, and F6-26 is room 2 on the plan
+    const near = (p: [number, number], q: [number, number]) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+    expect(near(spot.pos, cubePoint(cube, CUBE_ENTRY_X, 0.6))).toBeLessThan(0.2);
+    expect(near(getSpot("room-f6-26")!.pos, cubePoint(cube, 1.7, 3.85))).toBeLessThan(0.2);
     expect(spotLevel(spot)).toBe(floorLevel("5") + cube.half);
     expect(cube.door).toEqual(getSpot("se-stair-2")!.pos);
+  });
+
+  it("swaps the toilet and the stairs between the cube's two floors", () => {
+    const at = (floor: 1 | 2, kind: string) => cubePlan(floor).find((p) => p.kind === kind)!.x;
+    expect(at(1, "toilet")).toEqual(at(2, "stairs"));
+    expect(at(1, "stairs")).toEqual(at(2, "toilet"));
+    // the entry gap sits between them
+    expect(at(1, "toilet")[1]).toBeLessThan(CUBE_ENTRY_X);
+    expect(at(1, "stairs")[0]).toBeGreaterThan(CUBE_ENTRY_X);
   });
 
   it("mirrors the SE hallway into the other three", () => {
