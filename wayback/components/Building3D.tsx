@@ -13,7 +13,7 @@ const CUBE_H = FH * 0.84; // a cube is two short storeys
 const GLOW = "#3EE6F2";
 const VIOLET = "#9B7BFF";
 const VOID = "#070B12";
-const GREY = new THREE.Color("#3A4656");
+const GREY = new THREE.Color("#4A4E55"); // neutral, so anything not on your way reads as greyed out
 const INTRO_MS = 2600; // circle the whole tower
 const DIVE_MS = 2200; // then fly down to you
 
@@ -274,11 +274,14 @@ function Scene({
       // Up close it's a cut-away: everything above your floor disappears so the camera can see in,
       // and the floors below go dark grey so only your floor reads as "here".
       const above = !wide && l.level > Math.floor(here) + 0.5;
-      const fill = above ? 0 : current ? 0.5 : wide ? 0.16 : 0.025;
-      const edge = above ? 0 : current ? 0.9 : wide ? 0.3 : 0.1;
+      // Cubes on your floor aren't where you're going (yours is drawn separately), so they're greyed out too.
+      const cubesHere = current && !Number.isInteger(l.level) && !wide;
+      const lit = current && !cubesHere;
+      const fill = above ? 0 : lit ? 0.5 : cubesHere ? 0.06 : wide ? 0.16 : 0.025;
+      const edge = above ? 0 : lit ? 0.9 : cubesHere ? 0.28 : wide ? 0.3 : 0.1;
       l.fill.opacity += (fill - l.fill.opacity) * 0.1;
       l.edge.opacity += (edge - l.edge.opacity) * 0.1;
-      l.edge.color.lerp(current || wide ? l.color : GREY, 0.1);
+      l.edge.color.lerp(lit || wide ? l.color : GREY, 0.1);
     }
     if (detailGroup.current && detail) {
       detailGroup.current.visible = overview || out.current > 0.5 || detail.level <= Math.floor(here) + 0.5;

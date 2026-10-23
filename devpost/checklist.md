@@ -124,3 +124,4 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Inner cube stair removed from the drawing (learner: it led nowhere); the only stair shown for a cube is the one from the hallway.
 - When heading to a cube, the stair from the next hallway that lands on your cube's level is hidden (learner circled it in a screenshot: it looked like a second stair into the cube, leading nowhere). The stair from your own hallway into the cube below stays.
 - Rooms set back inside the cube (learner: the stair ran straight into the room) — about 2.6 m of corridor now separates the top of the hallway stair from the end room; plan depth 5 → 6.2 plan-metres, same cube size.
+- Cubes that aren't on your route are greyed out (neutral grey) on your floor too (learner); only the hallway and your own cube stay in colour up close.
