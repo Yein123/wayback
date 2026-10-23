@@ -315,8 +315,13 @@ function buildLayers(): Layer[] {
       const path = hallwayPath(h);
       for (let i = 1; i < path.length; i++) add(level, segment(path[i - 1], path[i], y, 5));
       const [ex, ey] = path.at(-1)!;
-      // staircase tower at the hallway's end
-      add(level, { center: [ex, y + FH / 2, ey], size: [4, FH, 4], angle: Math.atan2(ey, ex) });
+      // staircase at the hallway's end: up one flight, landing, back up the other side to the next floor
+      const len = Math.hypot(ex, ey);
+      const [ux, uy] = [ex / len, ey / len];
+      const at = (along: number, side: number): [number, number] => [ex + ux * along - uy * side, ey + uy * along + ux * side];
+      for (const b of flight(at(0.5, -1.1), at(4.5, -1.1), y, FH / 2, 1.8)) add(level, b);
+      add(level, { center: [...withY(at(5.4, 0), y + FH / 2 - 0.15)], size: [1.8, 0.3, 4.4], angle: Math.atan2(uy, ux) });
+      for (const b of flight(at(4.5, 1.1), at(0.5, 1.1), y + FH / 2, FH / 2, 1.8)) add(level, b);
     }
   }
 
@@ -326,7 +331,12 @@ function buildLayers(): Layer[] {
       const base = (level + c.half) * FH;
       const angle = (c.angle * Math.PI) / 180;
       add(level + c.half, { center: [c.center[0], base + FH * 0.42, c.center[1]], size: [10, FH * 0.84, 8], angle });
-      add(level + c.half, segment(c.door, c.center, base, 1.6));
+      // half a flight from the hallway's edge up (or down) to the cube's floor
+      const len = Math.hypot(c.center[0] - c.door[0], c.center[1] - c.door[1]);
+      const [vx, vy] = [(c.center[0] - c.door[0]) / len, (c.center[1] - c.door[1]) / len];
+      const from: [number, number] = [c.door[0] + vx * 2.5, c.door[1] + vy * 2.5];
+      const to: [number, number] = [c.center[0] - vx * 4, c.center[1] - vy * 4];
+      for (const b of flight(from, to, level * FH, c.half * FH, 1.8)) add(level + c.half, b);
     }
   }
 
@@ -370,6 +380,21 @@ function buildLayers(): Layer[] {
       color: new THREE.Color(isFloor ? GLOW : "#7f9cff"),
     };
   });
+}
+
+/** A flight of stairs from `a` to `b` (map points), starting at height y0 and climbing `rise` (negative goes down). */
+function flight(a: [number, number], b: [number, number], y0: number, rise: number, width: number, n = 7): Box[] {
+  const angle = Math.atan2(b[1] - a[1], b[0] - a[0]);
+  const run = Math.hypot(b[0] - a[0], b[1] - a[1]) / n;
+  return Array.from({ length: n }, (_, i) => {
+    const t = (i + 0.5) / n;
+    const top = y0 + (rise * (i + 1)) / n;
+    return { center: [a[0] + (b[0] - a[0]) * t, top - 0.15, a[1] + (b[1] - a[1]) * t], size: [run, 0.3, width], angle };
+  });
+}
+
+function withY([x, z]: [number, number], y: number): [number, number, number] {
+  return [x, y, z];
 }
 
 /** A flat walkway between two map points, `width` wide, lying at height y. */

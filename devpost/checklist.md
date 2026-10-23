@@ -29,7 +29,7 @@ Build mode: fast
   Learner check: Confirm a parking guess, type `F6-26`, step through the directions, and say whether each step matches what you'd actually do in M06; then type a made-up room and see the "doesn't know room" message.
   Commit: `Route from parking spot to a room with step diagrams`
 
-- [ ] **3. See the whole building in 3D and dive into your route**
+- [x] **3. See the whole building in 3D and dive into your route**
   Becomes usable: Directions opens on a full-height, game-like 3D view of the whole M06 block — every floor from B2 to 10 with its lift lobby, the X of hallways and the 32 split-level cubes — then the camera dives into your floor and follows the glowing route step by step. A 2D toggle shows the full plan of the floor you're on.
   Why now: You asked for an immersive, game-like view of the exact building structure. It goes before the phone test so that test also tells us whether the 3D scene and CLIP run smoothly together on your phone.
   PRD ref: `prd.md > The Core Journey` (steps 4–6), `prd.md > Guiding to a Room`, `prd.md > Look and Feel`
