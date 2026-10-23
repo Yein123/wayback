@@ -9,7 +9,7 @@ Implements `prd.md` (approved). Stays inside `scope.md > The POC Boundary`.
 
 ## How This Works, In Plain Language
 
-Wayback is a **Next.js web app you open in your phone's browser** at an `https://` link hosted free on **Vercel**. There's no app store.
+Wayback is a **Next.js web app you open in your phone's browser** at an `https://` link hosted free on **Firebase Hosting** (changed from Vercel during the build). There's no app store.
 
 The app has four kinds of pieces:
 
@@ -35,7 +35,7 @@ PRD ref: `prd.md > The Core Journey`.
 8. **Arrived** → the Parking Store flips the record from `current` to `history`, with an end time → Home shows an empty card, and the trip appears in the history.
 
 ```
-Phone browser (Next.js app on Vercel)
+Phone browser (Next.js app on Firebase Hosting)
 ┌─────────────────────────────────────────────────────────────┐
 │ Screens: Home · Locate · Destination · Directions           │
 │     │                │                    │                 │
@@ -60,7 +60,7 @@ Phone browser (Next.js app on Vercel)
 | Sign reading | **Tesseract.js** | Free in-browser OCR. |
 | Route | Hand-written Dijkstra in TypeScript | Small map. No library needed. |
 | 3D building view | **three.js** + **@react-three/fiber** (no drei) | Learner asked for a game-like, immersive view of the whole building that dives into the route; CSS can't give real depth, walls, lighting or a free camera. Kept to plain shapes, no textures, so it stays light next to CLIP on the phone. |
-| Hosting | **Vercel** (Hobby, free) | A real `https://` link the phone can open in the car park. |
+| Hosting | **Firebase Hosting** (Spark, free), static export (`output: "export"` → `out/`) | A real `https://` link the phone can open in the car park. Chosen during the build over Vercel: the learner was already signed in to Firebase, it's one command, and data, survey uploads and hosting share one project. Tradeoff: no Next.js server features (none are used). |
 | Tests | **Vitest** for the route planner and score-combining logic only | These are pure functions and easy to check. |
 
 Docs:
@@ -72,7 +72,7 @@ Docs:
 - [Storage plan change FAQ](https://firebase.google.com/docs/storage/faqs-storage-changes-announced-sept-2024)
 - [Transformers.js](https://huggingface.co/docs/transformers.js) / [v3 blog](https://huggingface.co/blog/transformersjs-v3)
 - [Tesseract.js](https://github.com/naptha/tesseract.js)
-- [Vercel + Next.js](https://vercel.com/docs/frameworks/nextjs)
+- [Firebase Hosting](https://firebase.google.com/docs/hosting) / [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports)
 - [Vitest](https://vitest.dev)
 - [three.js](https://threejs.org/docs) / [react-three-fiber](https://r3f.docs.pmnd.rs)
 
@@ -85,7 +85,7 @@ Docs:
 
 - **Development:** `cd wayback` → `npm install` → create `.env.local` with the Firebase web config (`NEXT_PUBLIC_FIREBASE_*`) → `npm run dev` → open `http://localhost:3000` (on a laptop, use the browser's phone view).
 - **Setup step (once, and again whenever the reference photos change):** `npm run embeddings` runs `scripts/build-embeddings.mjs`, which writes `public/data/embeddings.json`.
-- **On the phone:** push to GitHub → import into Vercel → add the same `NEXT_PUBLIC_FIREBASE_*` env vars → open the Vercel `https://` URL on the phone (the camera and GPS need https). Optional: "Add to Home Screen".
+- **On the phone:** `npm run build` then `firebase deploy --only hosting` (the build reads `.env.local`) → open https://wayback-m06-1626.web.app on the phone (the camera and GPS need https). Optional: "Add to Home Screen".
 - **Firebase setup:** create a project (Spark plan), enable Firestore and Anonymous sign-in, add the web app, and deploy `firestore.rules`.
 - **Demo recording:** a screen recording on the phone at the dorm, following `scope.md > What "Working" Looks Like`:
   1. capture the parking
@@ -98,7 +98,7 @@ Docs:
   8. tap Arrived
 
   Filming the surroundings with a second phone is optional.
-- **Submission:** a public GitHub repo and a short demo video (both required). The Vercel link is an optional extra for anyone who wants to try it. It only gives correct results at the dorm.
+- **Submission:** a public GitHub repo and a short demo video (both required). The hosted link is an optional extra for anyone who wants to try it. It only gives correct results at the dorm.
 
 ## Look and Feel
 From `prd.md > Look and Feel`: a futuristic AR/game HUD, inspired by AR games like Pokémon GO, on a dark background.
@@ -435,8 +435,8 @@ wayback/
 - **Where it runs:** in the browser (WASM). It downloads its language data on first use.
 - **Cost:** free.
 
-### Vercel
-- **Setup:** Hobby plan (free). It deploys from GitHub on every push, and the env vars are set in the project settings.
+### Firebase Hosting
+- **Setup:** Spark plan (free), project `wayback-m06-1626`. `firebase.json` serves `out/` with clean URLs; deploy with `firebase deploy --only hosting` after `npm run build`. The Firebase config is baked into the build from `.env.local`.
 
 ## Important Failure Modes
 
@@ -460,7 +460,7 @@ wayback/
 **Learner decisions**
 - **Next.js + React + Tailwind**, the learner's familiar stack, as a phone-browser web app.
 - **Firebase** for parkings, chosen over browser storage because the learner already uses it and it's free. Tradeoff: setup, keys, and rules.
-- **Matching in the browser + hosting on Vercel**, accepted from the recommendation. Tradeoff: a slow first load on the phone.
+- **Matching in the browser + hosting on Firebase Hosting** (Vercel at planning time; switched during the build by the learner). Tradeoff: a slow first load on the phone.
 - **The car park is outdoors**, so signal for Firebase saves is fine.
 - **Drawn diagrams, "like Unity but simple"**, instead of real photos with markers.
 
