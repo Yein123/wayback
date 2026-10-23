@@ -39,8 +39,16 @@ export async function saveParking(p: { spotId: string; label: string; thumb: str
   old.forEach((d) => batch.update(d.ref, { status: "history", endedAt: serverTimestamp() }));
   const created = doc(ref);
   batch.set(created, { ...p, status: "current", createdAt: serverTimestamp(), endedAt: null });
-  await batch.commit();
+  await settled(batch.commit());
   return created.id;
+}
+
+/** The saved parking right now, if any (for Find my car). */
+export async function getCurrentParking(): Promise<Parking | null> {
+  const { ref } = await parkingsRef();
+  const snap = await getDocs(query(ref, where("status", "==", "current")));
+  const d = snap.docs[0];
+  return d ? toParking(d.id, d.data({ serverTimestamps: "estimate" })) : null;
 }
 
 /** Arrived at the car: the parking moves to history. */
@@ -48,7 +56,15 @@ export async function endParking(id: string): Promise<void> {
   const { db, ref } = await parkingsRef();
   const batch = writeBatch(db);
   batch.update(doc(ref, id), { status: "history", endedAt: serverTimestamp() });
-  await batch.commit();
+  await settled(batch.commit());
+}
+
+/**
+ * Firestore applies a write to its offline cache at once and syncs when there's signal.
+ * With no signal (B2) the server never answers, so stop waiting after a moment; a real error still throws.
+ */
+function settled(commit: Promise<void>): Promise<void> {
+  return Promise.race([commit, new Promise<void>((resolve) => setTimeout(resolve, 2000))]);
 }
 
 type State = { loading: boolean; current: Parking | null; history: Parking[]; error: string | null };

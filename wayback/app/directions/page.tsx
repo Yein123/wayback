@@ -8,7 +8,8 @@ import HudPanel from "@/components/HudPanel";
 import RouteSim, { type SimView } from "@/components/RouteSim";
 import StepDiagram from "@/components/StepDiagram";
 import { getSpot, map } from "@/lib/map";
-import { shortestPath, toSteps, type Step } from "@/lib/route";
+import { endParking } from "@/lib/parkings";
+import { floorChange, shortestPath, toSteps, type Step } from "@/lib/route";
 import { endTrip, setStepIndex, startTrip, useTrip } from "@/lib/trip";
 import referencePhotos from "@/public/data/reference-photos.json";
 
@@ -25,6 +26,8 @@ export default function DirectionsPage() {
   const [playing, setPlaying] = useState(false);
   const [walked, setWalked] = useState(-1);
   const [full, setFull] = useState(false);
+  // After a lift or stairs step, Next first asks you to confirm the floor (the app can't sense a lift ride).
+  const [askFloor, setAskFloor] = useState(false);
 
   // Leaving the phone's real full screen (back gesture, Esc) also leaves ours.
   useEffect(() => {
@@ -66,7 +69,15 @@ export default function DirectionsPage() {
 
   function go(index: number) {
     setPlaying(false);
+    setAskFloor(false);
     setStepIndex(index);
+  }
+
+  const newFloor = floorChange(step);
+
+  function next() {
+    if (newFloor && !askFloor) setAskFloor(true);
+    else go(stepIndex + 1);
   }
 
   function toggleFull() {
@@ -77,8 +88,10 @@ export default function DirectionsPage() {
     else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
 
-  function finish() {
+  async function finish() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    // Back at the car: the parking moves to history and the Home card empties.
+    if (trip?.mode === "toCar" && trip.parkingId) await endParking(trip.parkingId);
     endTrip();
     router.push("/");
   }
@@ -111,7 +124,29 @@ export default function DirectionsPage() {
 
   const progress =`${isLast ? "ARRIVED" : `≈ ${minutesLeft} MIN LEFT`} · STEP ${stepIndex + 1}/${steps.length}`;
 
-  const controls = (
+  const floorName = newFloor ? (newFloor.startsWith("B") ? newFloor : `FLOOR ${newFloor}`) : "";
+
+  const controls = askFloor ? (
+    <div className="mt-auto flex flex-col gap-3">
+      <p className="text-center font-hud text-sm tracking-[0.2em] text-glow">ON {floorName} NOW?</p>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => router.push("/locate?mode=help")}
+          className="rounded-2xl border border-amber/60 px-4 py-4 font-hud text-xs tracking-widest text-amber active:scale-[0.98]"
+        >
+          NOT SURE · SNAP
+        </button>
+        <button
+          type="button"
+          onClick={() => go(stepIndex + 1)}
+          className="flex-1 rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
+        >
+          YES ›
+        </button>
+      </div>
+    </div>
+  ) : (
     <div className="mt-auto flex gap-3">
       {stepIndex > 0 && (
         <button
@@ -120,6 +155,16 @@ export default function DirectionsPage() {
           className="rounded-2xl border border-edge px-5 py-4 font-hud text-sm tracking-widest text-muted active:scale-[0.98]"
         >
           BACK
+        </button>
+      )}
+      {!isLast && (
+        <button
+          type="button"
+          onClick={() => router.push("/locate?mode=help")}
+          aria-label="I'm lost: find where I am"
+          className="rounded-2xl border border-amber/60 px-4 py-4 font-hud text-sm tracking-widest text-amber active:scale-[0.98]"
+        >
+          ?
         </button>
       )}
       {canSim && !isLast && (
@@ -143,7 +188,7 @@ export default function DirectionsPage() {
       ) : (
         <button
           type="button"
-          onClick={() => go(stepIndex + 1)}
+          onClick={next}
           className="flex-1 rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
         >
           NEXT ›

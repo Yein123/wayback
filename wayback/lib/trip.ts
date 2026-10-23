@@ -9,6 +9,8 @@ export type Trip = {
   to: string;
   steps: Step[];
   stepIndex: number;
+  /** For a trip back to the car: the saved parking that Arrived ends. */
+  parkingId?: string;
 };
 
 const KEY = "wayback.trip";
@@ -43,6 +45,11 @@ export function startTrip(trip: Omit<Trip, "stepIndex">) {
 export function setStepIndex(stepIndex: number) {
   const trip = read();
   if (trip) write({ ...trip, stepIndex });
+}
+
+/** The trip right now, outside React (e.g. to keep its destination when Help re-routes). */
+export function currentTrip(): Trip | null {
+  return read();
 }
 
 export function endTrip() {

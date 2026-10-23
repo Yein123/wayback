@@ -10,7 +10,9 @@ import { getGps, type Gps } from "@/lib/gps";
 import { makeThumb } from "@/lib/image";
 import { getSpot } from "@/lib/map";
 import { matchPhoto } from "@/lib/matcher";
-import { saveParking } from "@/lib/parkings";
+import { getCurrentParking, saveParking } from "@/lib/parkings";
+import { shortestPath, toSteps } from "@/lib/route";
+import { currentTrip, startTrip } from "@/lib/trip";
 import { clearPendingPhoto, peekPendingPhoto } from "@/lib/pendingPhoto";
 import type { SpotGuess } from "@/lib/scoring";
 
@@ -61,6 +63,33 @@ export default function LocateFlow() {
     [runMatch],
   );
 
+  // Find my car: from the confirmed spot to the saved parking.
+  async function routeToCar(here: string) {
+    setStep({ kind: "saving" });
+    try {
+      const parking = await getCurrentParking();
+      if (!parking) throw new Error("No parking is saved. Capture your parking spot first.");
+      go(here, parking.spotId, "toCar", parking.id);
+    } catch (err) {
+      setStep({ kind: "error", message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  // Help: fresh steps from the confirmed spot to the trip's same destination.
+  function reroute(here: string) {
+    const trip = currentTrip();
+    if (!trip) return setStep({ kind: "error", message: "There's no route in progress to get back on." });
+    go(here, trip.to, trip.mode, trip.parkingId);
+  }
+
+  function go(here: string, to: string, tripMode: "toRoom" | "toCar", parkingId?: string) {
+    const path = here === to ? [] : shortestPath(here, to);
+    if (!path) return setStep({ kind: "error", message: "Wayback can't find a way from there yet." });
+    const target = tripMode === "toCar" ? "car" : "room";
+    startTrip({ mode: tripMode, from: here, to, parkingId, steps: toSteps(path, { target, label: getSpot(to)?.label ?? to }, to) });
+    router.push("/directions");
+  }
+
   const started = useRef(false);
   useEffect(() => {
     if (started.current || !handedOver || step.kind !== "working") return;
@@ -104,7 +133,8 @@ export default function LocateFlow() {
         <Result
           step={step}
           onConfirm={async (guess) => {
-            if (mode !== "park") return setStep({ kind: "confirmed", guess });
+            if (mode === "car") return routeToCar(guess.spotId);
+            if (mode === "help") return reroute(guess.spotId);
             setStep({ kind: "saving" });
             try {
               const [thumb, fix] = await Promise.all([makeThumb(step.file), gps.current ?? Promise.resolve(null)]);
@@ -117,7 +147,9 @@ export default function LocateFlow() {
         />
       )}
 
-      {step.kind === "saving" && <p className="text-center font-hud text-sm tracking-[0.2em] text-glow">SAVING YOUR SPOT…</p>}
+      {step.kind === "saving" && (
+        <p className="text-center font-hud text-sm tracking-[0.2em] text-glow">{mode === "park" ? "SAVING YOUR SPOT…" : "PLOTTING YOUR ROUTE…"}</p>
+      )}
 
       {step.kind === "confirmed" && (
         <HudPanel className="text-center">

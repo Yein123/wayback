@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getSpot, map } from "@/lib/map";
-import { findRoom, normalizeRoom, shortestPath, toSteps } from "@/lib/route";
+import { findRoom, floorChange, normalizeRoom, shortestPath, toSteps } from "@/lib/route";
 
 const spotsOn = (from: string, to: string) => {
   const path = shortestPath(from, to)!;
@@ -100,5 +100,19 @@ describe("toSteps", () => {
       from: "room-f6-26",
       to: "room-f6-26",
     });
+  });
+});
+
+describe("floorChange", () => {
+  it("names the floor after a lift ride, and nothing for walking steps", () => {
+    const steps = toSteps(shortestPath("cp-se", "room-f6-26")!, { target: "room", label: "Room F6-26" }, "room-f6-26");
+    const changes = steps.map((s) => floorChange(s)).filter(Boolean);
+    expect(changes).toEqual(["5"]);
+    expect(floorChange(steps[0])).toBeNull();
+  });
+
+  it("names the floor going back down too", () => {
+    const steps = toSteps(shortestPath("se-stair-2", "cp-se")!, { target: "car", label: "Car Park · SE Side" }, "cp-se");
+    expect(steps.map((s) => floorChange(s)).filter(Boolean)).toEqual(["1"]);
   });
 });

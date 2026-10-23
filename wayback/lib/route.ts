@@ -60,3 +60,14 @@ export function toSteps(path: Link[], arrival: { target: "car" | "room"; label: 
   const text = arrival.target === "car" ? `Your car is here: ${arrival.label}` : `You've arrived: ${arrival.label}`;
   return [...steps, { text, diagram: { kind: "arrive", ...arrival }, from: end, to: end }];
 }
+
+/**
+ * The floor a lift or stairs step takes you to, or null if the step stays on one floor.
+ * The app can't sense a lift ride, so after these steps it asks you to confirm the floor.
+ */
+export function floorChange(step: Step, map: DormMap = dormMap): string | null {
+  if (step.diagram.kind === "lift-ride") return step.diagram.to;
+  if (step.diagram.kind !== "stairs") return null;
+  const [a, b] = [map.spots.find((s) => s.id === step.from), map.spots.find((s) => s.id === step.to)];
+  return a && b && a.floor !== b.floor ? b.floor : null;
+}
