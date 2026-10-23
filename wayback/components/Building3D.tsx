@@ -496,7 +496,7 @@ function buildLayers(skipStair: string): Layer[] {
       // half a flight from the hallway's edge up (or down) to the cube's entry gap
       const to = cubePoint(c, CUBE_ENTRY_X, 0);
       const from: [number, number] = [c.door[0] + c.inward[0] * 2.5, c.door[1] + c.inward[1] * 2.5];
-      if (!skipStair.split("|").includes(stairKey(c, level))) for (const b of flight(from, to, level * FH, c.half * FH, 1.4)) add(level + c.half, b);
+      if (stairKey(c, level) !== skipStair) for (const b of flight(from, to, level * FH, c.half * FH, 1.4)) add(level + c.half, b);
     }
   }
 
@@ -551,7 +551,7 @@ function mergeBoxes(list: Box[]): { fill: THREE.BufferGeometry; edge: THREE.Buff
 
 type CubeDetail = {
   level: number;
-  /** The other stairs that meet your cube's stack around its level (hidden), joined with "|". */
+  /** The stair from the next hallway that lands on your cube's level (hidden). */
   partnerStair: string;
   parts: Record<"slabs" | "rooms" | "target" | "toilet" | "upper", { fill: THREE.BufferGeometry; edge: THREE.BufferGeometry } | null>;
 };
@@ -601,12 +601,12 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
   const parts = Object.fromEntries(
     Object.entries(groups).map(([k, list]) => [k, list.length ? mergeBoxes(list) : null]),
   ) as CubeDetail["parts"];
-  // The mirrored cube of the stack is reached by the partner stair (1 ↔ 2, 3 ↔ 4): from this hallway
-  // into the cube below or above yours, and from the next hallway into the cube on your own level.
+  // The partner stair (1 ↔ 2, 3 ↔ 4) from the next hallway up (or down) lands on your cube's level
+  // and looks like a second stair into your cube, leading nowhere once the floors above are cut away.
+  // The partner stair from your own hallway, into the cube below (or above), stays.
   const hallwayLevel = level - cube.half;
   const partner = { ...cube, stair: cube.stair <= 2 ? 3 - cube.stair : 7 - cube.stair };
-  const hidden = [stairKey(partner, hallwayLevel), stairKey(partner, hallwayLevel + 2 * cube.half)];
-  return { level, parts, partnerStair: hidden.join("|") };
+  return { level, parts, partnerStair: stairKey(partner, hallwayLevel + 2 * cube.half) };
 }
 
 /** A flight of stairs from `a` to `b` (map points), starting at height y0 and climbing `rise` (negative goes down). */
