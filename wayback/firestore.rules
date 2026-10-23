@@ -12,6 +12,7 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid in [
         "hTZ0qnWZqcWcwkXlJNSee141hWp1", // laptop (Chrome)
         "gVBinpEKc4bSca91T2sSDvTPou82", // learner's phone
+        "SuNCy5uU0YTZHnEainnWe4hXPI42", // learner's second device/browser
       ];
     }
     // Buildings anyone can add (Wayback for any building): readable by any signed-in user,
