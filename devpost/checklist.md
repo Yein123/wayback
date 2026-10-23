@@ -69,7 +69,7 @@ Build mode: fast
   Learner check: Tap Where to?, type F6-26, capture four of your dorm photos on the laptop, and follow the route; then capture a parking and try Skip after one photo. Say whether the side guide is clear and the guesses right.
   Commit: `Capture four sides and pin with GPS`
 
-- [ ] **7. Add a building and upload its floor plans**
+- [x] **7. Add a building and upload its floor plans**
   Becomes usable: Home has **ADD BUILDING**. You enter a building's name, then add its floors one by one — a label (B2, G, 1, 2…) and a photo or image of that floor's plan. The building and its floors are saved to Firebase under your account, and the building page shows each floor's plan. M06 keeps working as before.
   Why now: You chose to start the "Wayback for any building" vision while the dorm survey waits on your visit. Uploading floor plans is the first step: the next slice draws outlines on them and raises them into 3D.
   PRD ref: `prd.md > Adding a Building`, `prd.md > Possible Later Enhancements` (product vision)
