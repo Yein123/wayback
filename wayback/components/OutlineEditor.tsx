@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { Floor } from "@/lib/buildings";
+import { detectShapes } from "@/lib/detect";
 import { metresPerPixel, OUTLINE_KINDS, polygonArea, type Outline, type OutlineKind, type Point } from "@/lib/outline";
 
 export const KIND_COLOR: Record<OutlineKind, string> = {
@@ -22,7 +23,7 @@ type Shape = { metresPerPixel: number | null; scaleLine: [Point, Point] | null; 
  */
 export default function OutlineEditor({ floor, onSave, onClose }: { floor: Floor; onSave: (shape: Shape) => Promise<void>; onClose: () => void }) {
   const svg = useRef<SVGSVGElement>(null);
-  const [mode, setMode] = useState<"scale" | "draw">(floor.metresPerPixel ? "draw" : "scale");
+  const [mode, setMode] = useState<"scale" | "draw" | "remove">(floor.metresPerPixel ? "draw" : "scale");
   const [kind, setKind] = useState<OutlineKind>("hallway");
   const [scaleLine, setScaleLine] = useState<Point[]>(floor.scaleLine ?? []);
   const [metres, setMetres] = useState("");
@@ -30,6 +31,7 @@ export default function OutlineEditor({ floor, onSave, onClose }: { floor: Floor
   const [outlines, setOutlines] = useState<Outline[]>(floor.outlines);
   const [drawing, setDrawing] = useState<Point[]>([]);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [detecting, setDetecting] = useState(false);
   // Marks and lines are drawn in plan pixels, so size them to the plan.
   const u = Math.max(floor.width, floor.height) / 300;
 
@@ -40,7 +42,12 @@ export default function OutlineEditor({ floor, onSave, onClose }: { floor: Floor
     const pt: Point = [Math.round(p.x), Math.round(p.y)];
     setState("idle");
     if (mode === "scale") setScaleLine((l) => (l.length >= 2 ? [pt] : [...l, pt]));
-    else {
+    else if (mode === "remove") {
+      // Remove the smallest shape under the tap (so a shop inside a bigger area goes first).
+      const hits = outlines.map((o, i) => ({ i, a: polygonArea(o.points) })).filter(({ i }) => inside(outlines[i].points, pt));
+      const hit = hits.sort((a, b) => a.a - b.a)[0];
+      if (hit) setOutlines((all) => all.filter((_, j) => j !== hit.i));
+    } else {
       // Tapping near the first corner closes the shape.
       if (drawing.length >= 3 && Math.hypot(pt[0] - drawing[0][0], pt[1] - drawing[0][1]) < u * 4) return closeShape();
       setDrawing((d) => [...d, pt]);
@@ -61,6 +68,29 @@ export default function OutlineEditor({ floor, onSave, onClose }: { floor: Floor
     setDrawing([]);
   }
 
+  /** Finds every shop and lift on a flat-colour plan and replaces the shapes with them (fix by hand after). */
+  async function autoDetect() {
+    setDetecting(true);
+    try {
+      const img = new Image();
+      img.src = floor.image;
+      await img.decode();
+      const scale = Math.max(1, floor.width / 1000); // big plans are read at up to 1000 px wide
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(floor.width / scale);
+      canvas.height = Math.round(floor.height / scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      setOutlines(detectShapes(pixels, scale));
+      setDrawing([]);
+      setMode("draw");
+      setState("idle");
+    } finally {
+      setDetecting(false);
+    }
+  }
+
   async function save() {
     setState("saving");
     try {
@@ -76,15 +106,26 @@ export default function OutlineEditor({ floor, onSave, onClose }: { floor: Floor
   return (
     <div className="flex flex-col gap-3">
       <div className="flex overflow-hidden rounded-lg border border-edge font-hud text-[10px] tracking-widest">
-        {(["scale", "draw"] as const).map((m) => (
+        {(["scale", "draw", "remove"] as const).map((m) => (
           <button key={m} type="button" onClick={() => setMode(m)} className={`flex-1 py-1.5 ${mode === m ? "bg-glow/20 text-glow" : "text-muted"}`}>
-            {m === "scale" ? `1 · SCALE${mpp ? " ✓" : ""}` : "2 · DRAW SHAPES"}
+            {m === "scale" ? `1 · SCALE${mpp ? " ✓" : ""}` : m === "draw" ? "2 · DRAW" : "REMOVE"}
           </button>
         ))}
       </div>
 
+      <button
+        type="button"
+        onClick={autoDetect}
+        disabled={detecting}
+        className="rounded-xl border border-violet/60 bg-violet/10 py-2 font-hud text-xs tracking-[0.2em] text-violet disabled:opacity-50"
+      >
+        {detecting ? "DETECTING…" : outlines.length ? "AUTO-DETECT AGAIN (REPLACES SHAPES)" : "AUTO-DETECT SHAPES"}
+      </button>
+
       {mode === "scale" ? (
         <p className="text-sm text-ink">Tap two points you know the real distance between (e.g. the ends of a wall), then type the metres.</p>
+      ) : mode === "remove" ? (
+        <p className="text-sm text-ink">Tap a wrong shape on the plan to remove it.</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-1.5">
@@ -173,18 +214,13 @@ export default function OutlineEditor({ floor, onSave, onClose }: { floor: Floor
       )}
 
       {outlines.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {outlines.map((o, i) => (
-            <li key={i} className="flex items-center justify-between text-sm">
-              <span style={{ color: KIND_COLOR[o.kind] }}>
-                {o.kind} · {area(o)}
-              </span>
-              <button type="button" onClick={() => setOutlines((all) => all.filter((_, j) => j !== i))} className="font-hud text-[10px] tracking-widest text-muted">
-                REMOVE
-              </button>
-            </li>
-          ))}
-        </ul>
+        <p className="text-sm text-muted">
+          {outlines.length} shapes ·{" "}
+          {OUTLINE_KINDS.filter((k) => outlines.some((o) => o.kind === k))
+            .map((k) => `${outlines.filter((o) => o.kind === k).length} ${k}`)
+            .join(", ")}
+          {mpp && ` · last: ${area(outlines[outlines.length - 1])}`}
+        </p>
       )}
 
       <div className="flex gap-2">
@@ -203,4 +239,14 @@ export default function OutlineEditor({ floor, onSave, onClose }: { floor: Floor
       {!mpp && <p className="text-xs text-amber">Without a scale, the 3D view guesses the size.</p>}
     </div>
   );
+}
+
+function inside(poly: Point[], [px, py]: Point): boolean {
+  let hit = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
 }
