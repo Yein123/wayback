@@ -166,6 +166,8 @@ PRD ref: `prd.md > Guiding to a Room`, `prd.md > Finding the Car`, `prd.md > Hel
 
 The user always confirms. No confidence threshold is needed, because even the top guess goes through ✓.
 
+**Four-side capture (added during the build):** a capture can hold up to four photos (front, right, back, left). Steps 1–4 run for each photo; a spot's combined score is the average of its per-photo scores, so it must match from several directions. If a GPS fix with accuracy ≤ 20 m is available and the GPS anchors are set, spots more than about (accuracy + 15 m) from the fix are dropped before ranking. Floors are never decided by GPS.
+
 PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Fixing a Wrong Location`.
 
 ### Route Planner
@@ -206,7 +208,7 @@ Thumbnails are JPEG, about 320px on the long side at quality 0.6 (~20–40 KB), 
 PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Arriving and Parking History`.
 
 ### GPS Stamp
-`lib/gps.ts`. A single `getCurrentPosition` with a 5-second timeout. It returns `{lat, lng, accuracy}` or `null`, is never awaited before matching, and never affects the result.
+`lib/gps.ts`. A single `getCurrentPosition` with a 5-second timeout. It returns `{lat, lng, accuracy}` or `null`. It's saved with the parking and (changed during the build) used as a **pin** by the Location Matcher when accurate. Converting lat/lng to map metres uses `public/data/gps-anchors.json`: two or more real GPS readings taken at known spots (e.g. the SE entrance and the SE car park) during the phone test. Until anchors exist, the pin is off.
 
 PRD ref: `prd.md > Capturing the Parking Spot` (GPS supporting only).
 

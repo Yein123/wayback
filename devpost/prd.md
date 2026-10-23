@@ -48,11 +48,11 @@ The **Parking History** list is view-only. Each row shows the date, time, matche
 ### Capturing the Parking Spot
 Source: `scope.md > The POC Boundary` (AI matches the parking capture).
 
-- As a driver who just parked, I want to take one photo and have the app know where my car is, so I don't need to remember the bay myself.
-  - [ ] Tapping **Capture** on Home opens the camera, and taking one photo sends it for matching.
+- As a driver who just parked, I want to snap my surroundings and have the app know where my car is, so I don't need to remember the bay myself.
+  - [ ] Tapping **Capture** on Home guides you through **four photos: front, right, back and left**. All four are matched together, so a spot has to look right from several directions. *(Learner, added during the build.)* You can skip the remaining sides if the first photos are enough.
   - [ ] The Location Result shows a readable label (floor + zone) and the reference photo it matched.
   - [ ] When the photo includes a readable sign (e.g. "B1", a pillar number), that text is used to help the guess.
-  - [ ] A rough GPS position is saved with the capture when one is available. Missing GPS never blocks or changes the result.
+  - [ ] A GPS position is saved with the capture when one is available. When it's accurate (roughly within 20 m), it **pins the area**: only spots near that position are considered. When it's poor or missing (underground, indoors), it's ignored. GPS never decides the floor.
   - [ ] Tapping ✓ saves it as **Current Parking**, and the Home card shows its label, photo, and time.
 
 ### Fixing a Wrong Location
@@ -71,6 +71,7 @@ Source: `scope.md > The Core Loop` step 2, `scope.md > The POC Boundary` (shorte
   - [ ] The route is the shortest path on the dorm map and is shown one step at a time.
   - [ ] Each step shows a simple picture of the area with the correct choice highlighted (e.g. 3 lifts, Lift 2 glowing) and one line of text (e.g. "Take Lift 2 up to Floor 5").
   - [ ] **Next** moves to the following step. The final step names the room.
+  - [ ] **Changing floors:** after a lift or stairs step, the app asks you to confirm the floor you're now on (e.g. "On Floor 5 now?"). "Not sure" lets you snap the lobby or a sign to check. *(Learner: the app can't reliably detect a lift ride from a web page.)*
 
 ### Finding the Car
 Source: `scope.md > The Core Loop` step 3, `scope.md > The POC Boundary` (way back: "where am I?" matching).
@@ -83,7 +84,7 @@ Source: `scope.md > The Core Loop` step 3, `scope.md > The POC Boundary` (way ba
 
 ### Help While Walking
 - [ ] **Help** is available on every direction step. *(Assumption: the learner placed it at the arrival end, and it's extended here to every step.)*
-- [ ] Help → snap where you are → locate (with the same fixes) → fresh steps from there to the same destination.
+- [ ] Help ("I'm lost") → capture the four sides where you are (plus GPS when accurate) → locate in the building (with the same fixes) → fresh steps from there to the same destination, or back to the car.
 
 ### Arriving and Parking History
 - [ ] **Arrived** moves the Current Parking entry into **Parking History** and empties the Current Parking card.

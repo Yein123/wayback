@@ -39,19 +39,49 @@ Build mode: fast
   Learner check: Run `npm run dev`, type `F6-26` from a parking guess, watch the building overview and the dive, step through the route, switch to 2D, and say whether it feels like the game you pictured and whether the structure looks like M06.
   Commit: `Show the whole building in 3D and dive into the route`
 
-- [ ] **4. Open Wayback on your phone at the dorm**
-  Becomes usable: A real `https://` link that opens on your phone, uses the phone camera, and runs the AI matching on the phone itself.
-  Why now: The phone is where this app lives, and CLIP on a phone browser (speed, model download, WASM fallback) is the biggest unknown left. Testing at the dorm now tells us whether the reference photos and angles are good enough while there's still time to retake them.
+- [ ] **4. Your parking is remembered after you close the app**
+  Becomes usable: Confirming a parking saves it. Home shows the Current Parking card with the label, photo thumbnail and time, and it's still there after you close and reopen the app. Capturing a new parking moves the old one into Parking History.
+  Why now: You asked to make the whole navigation work before the phone test, and saving the car is its first piece. Firebase is familiar to you and low-risk, but it needs your Firebase project and keys.
+  PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Screens and Layout` (Home), `prd.md > States and Boundaries` (first use, parked, coming back later)
+  Spec ref: `spec.md > Components` (Parking Store, GPS Stamp, Home Screen), `spec.md > Data Model` (Parkings, Security rules), `spec.md > External Services and Dependencies` (Firebase), `spec.md > What Was Simplified and Why`
+  Build: You create the Firebase project (Spark plan, Firestore, Anonymous sign-in, web app) and put the config in `.env.local`; I add `.env.local.example`, `lib/firebase.ts` with anonymous auth and offline cache, `lib/parkings.ts`, `lib/gps.ts`, thumbnails in `lib/image.ts`, `firestore.rules`, and `ParkingCard` and `HistoryList` on Home. (The same env vars go into Vercel in slice 7.)
+  Verify (mechanical): `npm run build` passes; in the browser, confirming a parking writes one `current` record under the anonymous user, a reload still shows it, a second capture leaves exactly one `current` and moves the old one to `history`; `.env.local` is ignored by git.
+  Learner check: Capture and confirm a parking, close the tab, reopen the app, and check the card is still there with your photo; then capture again and see the first one move to history.
+  Commit: `Save current parking and history in Firestore`
+
+- [ ] **5. Find my car, get help, and arrive**
+  Becomes usable: The whole loop, on the laptop. "Find my car" asks you to snap where you are, locates you (with the same fixes), and walks you back by the shortest route. Help on any step re-locates you and gives fresh steps. After a lift or stairs step the app asks you to confirm the floor you're on ("On Floor 5 now?"), with "Not sure" to snap the lobby or a sign. Arrived on the last step ends the parking, moves it to history, and empties the card.
+  Why now: It reuses matching, routing and storage and completes the journey you asked for; the wrong-guess fixes (slice 8) slot in later.
+  PRD ref: `prd.md > The Core Journey` (steps 7–10), `prd.md > Finding the Car`, `prd.md > Help While Walking`, `prd.md > Arriving and Parking History`, `prd.md > Guiding to a Room` (changing floors)
+  Spec ref: `spec.md > Components` (Locate Flow `car`/`help` modes, Directions Screen, Parking Store `endParking`, Trip State)
+  Build: Wire Locate Flow `mode=car` and `mode=help`, route from "you are here" to the parked spot or the current destination, Arrived → `endParking` → Home, Done for room trips, and the floor confirm after lift/stairs steps.
+  Verify (mechanical): `npm test` and `npm run build` pass; in the browser, Find my car from a floor 5 lobby photo gives the reverse route to the parked spot, Help mid-route gives fresh steps to the same destination, the lift step asks to confirm the floor, and Arrived leaves no `current` parking and one new history row.
+  Learner check: On the laptop, capture a parking, go to F6-26 (confirming the floor after the lift), then Find my car with a photo from the path, follow it back, and tap Arrived.
+  Commit: `Add find my car, help, and arrived`
+
+- [ ] **6. Capture four sides, pinned by GPS**
+  Becomes usable: Capture (parking, Find my car, Help / "I'm lost") guides you through four photos — front, right, back, left — and matches them together, so a spot must look right from several directions. When your phone has an accurate GPS fix and the building's GPS anchors are set, spots far from you are ruled out first. You can skip the remaining sides.
+  Why now: You asked for it to make locating reliable in identical-looking hallways and car park bays, and so being lost always leads back to a route. It builds on the matcher and the Help flow from slice 5.
+  PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Help While Walking`, `prd.md > States and Boundaries` (no GPS signal)
+  Spec ref: `spec.md > Components` (Location Matcher — four-side capture, GPS Stamp), `spec.md > Data Model` (Reference photos, Embeddings)
+  Build: Locate Flow four-shot capture with a side guide and Skip; `lib/scoring.ts` combines per-photo scores per spot (average) and filters by GPS distance when accuracy ≤ 20 m (pure, tested); `lib/gps.ts` converts lat/lng to map metres from `public/data/gps-anchors.json` (empty until the phone test, so the pin is off); Home, Find my car and Help use the same capture.
+  Verify (mechanical): `npm test` passes scoring tests (the spot that matches most of the four photos beats one lucky match; a far spot is dropped with an accurate fix; no anchors or poor accuracy changes nothing); `npm run build` passes; in the browser, four reference photos from one spot give that spot, and Skip after one photo still works.
+  Learner check: Capture with four of your dorm photos on the laptop, then try Skip after one, and say whether the side guide is clear and the guess right.
+  Commit: `Capture four sides and pin with GPS`
+
+- [ ] **7. Open Wayback on your phone at the dorm**
+  Becomes usable: A real `https://` link that opens on your phone, uses the phone camera, runs the AI matching (four photos) and the 3D view on the phone itself, and has the GPS pin switched on.
+  Why now: Everything you asked for is in, so this tests it for real. CLIP (four photos) plus the 3D view on a phone is the biggest unknown left, and the dorm visit also collects the GPS anchor readings and settles the open building details (which cubes are mirrored, the way into F6-26).
   PRD ref: `prd.md > The Core Journey` (steps 1–6), `prd.md > Capturing the Parking Spot`
   Spec ref: `spec.md > Where It Runs and How Someone Tries It`, `spec.md > External Services and Dependencies` (Vercel, Hugging Face model files), `spec.md > Important Failure Modes` (CLIP slow or fails)
-  Build: Add a `README.md` with how to run it. Push the project to a GitHub repo (private is fine for now) and deploy it on Vercel — you sign in to GitHub and Vercel yourself. Make sure the model loads with download progress and falls back to WASM when WebGPU is missing.
+  Build: Add a `README.md` with how to run it. Push the project to a GitHub repo (private is fine for now) and deploy it on Vercel — you sign in to GitHub and Vercel yourself. Make sure the model loads with download progress. Add the Firebase env vars in Vercel. At the dorm, take GPS readings at two or three known spots for `gps-anchors.json`.
   Verify (mechanical): The Vercel build succeeds; the deployed URL returns the Home page, `public/data/embeddings.json` and a reference photo; a deployed-page browser check runs a match without errors.
-  Learner check: Open the link on your phone, snap three real spots on the demo path (car park, floor 5 lobby, SE stair 2), and tell me for each one whether the guess was right and how long it took.
+  Learner check: On your phone at the dorm, do the full demo: capture the parking (four sides), go to F6-26, then Find my car from somewhere on the path, follow it back and tap Arrived. Tell me where guesses were wrong, how long matching took, and whether the 3D view stayed smooth.
   Commit: `Add README and deployment notes for phone testing`
 
-- [ ] **5. Fix a wrong guess: other guesses, sign photo, pick from list**
+- [ ] **8. Fix a wrong guess: other guesses, sign photo, pick from list**
   Becomes usable: When the guess is wrong you tap "No, that's wrong" and pick from the next best photos; if none fit, you snap a sign and it re-matches using the sign's text; if that still fails, you pick your spot from a list grouped by floor. Visible signs like "F6-25 - F6-28" now boost the right guess on every match.
-  Why now: Slice 4 shows how often matching is wrong in real life. This slice makes sure no wrong guess ever leaves you stuck, and adds the sign reading that matters most in identical-looking hallways.
+  Why now: Slice 7 shows how often matching is wrong in real life. This slice makes sure no wrong guess ever leaves you stuck, and adds the sign reading that matters most in identical-looking hallways.
   PRD ref: `prd.md > Fixing a Wrong Location`, `prd.md > Capturing the Parking Spot` (readable sign helps the guess), `prd.md > States and Boundaries` (unsure match)
   Spec ref: `spec.md > Components` (Locate Flow steps 4–6, Location Matcher), `spec.md > External Services and Dependencies` (Tesseract.js), `spec.md > Important Failure Modes`
   Build: Add Tesseract.js OCR to `lib/matcher.ts` and the sign bonus to `lib/scoring.ts` (with tests), then Other Guesses (`GuessCard`), the sign-photo step, and `SpotListPicker`. Tune the sign bonus against the real sign photos.
@@ -59,29 +89,9 @@ Build mode: fast
   Learner check: Snap a photo, tap "No, that's wrong", try picking another guess, then try "None of these" with a sign photo, then the list — and say whether any path felt slow or confusing.
   Commit: `Add guess fixes, sign reading, and list picker`
 
-- [ ] **6. Your parking is remembered after you close the app**
-  Becomes usable: Confirming a parking saves it. Home shows the Current Parking card with the label, photo thumbnail and time, and it's still there after you close and reopen the app. Capturing a new parking moves the old one into Parking History.
-  Why now: The route and matching now work, so saving their result is next. Firebase is familiar to you and low-risk, but it needs your Firebase project and keys, so it waits until the core works.
-  PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Screens and Layout` (Home), `prd.md > States and Boundaries` (first use, parked, coming back later)
-  Spec ref: `spec.md > Components` (Parking Store, GPS Stamp, Home Screen), `spec.md > Data Model` (Parkings, Security rules), `spec.md > External Services and Dependencies` (Firebase), `spec.md > What Was Simplified and Why`
-  Build: You create the Firebase project (Spark plan, Firestore, Anonymous sign-in, web app) and put the config in `.env.local`; I add `.env.local.example`, `lib/firebase.ts` with anonymous auth and offline cache, `lib/parkings.ts`, `lib/gps.ts`, thumbnails in `lib/image.ts`, `firestore.rules`, and `ParkingCard` and `HistoryList` on Home. Add the same env vars in Vercel.
-  Verify (mechanical): `npm run build` passes; in the browser, confirming a parking writes one `current` record under the anonymous user, a reload still shows it, a second capture leaves exactly one `current` and moves the old one to `history`; `.env.local` is ignored by git.
-  Learner check: Capture and confirm a parking, close the tab, reopen the app, and check the card is still there with your photo; then capture again and see the first one move to history.
-  Commit: `Save current parking and history in Firestore`
-
-- [ ] **7. Find my car, get help, and arrive**
-  Becomes usable: The whole loop. "Find my car" asks you to snap where you are, locates you (with the same fixes), and walks you back by the shortest route. Help on any step re-locates you and gives fresh steps. Arrived on the last step ends the parking, moves it to history, and empties the card.
-  Why now: It reuses everything already built — matching, fixes, routing, storage — so it's the last piece, and it completes the demo journey.
-  PRD ref: `prd.md > The Core Journey` (steps 7–10), `prd.md > Finding the Car`, `prd.md > Help While Walking`, `prd.md > Arriving and Parking History`
-  Spec ref: `spec.md > Components` (Locate Flow `car`/`help` modes, Directions Screen, Parking Store `endParking`, Trip State)
-  Build: Wire Locate Flow `mode=car` and `mode=help`, route from "you are here" to the parked spot or the current destination, Arrived → `endParking` → Home, Done for room trips, and redeploy.
-  Verify (mechanical): `npm test` and `npm run build` pass; in the browser, Find my car from a floor 5 lobby photo gives the reverse route to the parked spot, Help mid-route gives fresh steps to the same destination, and Arrived leaves no `current` parking and one new history row.
-  Learner check: On your phone at the dorm, do the full demo: capture the parking, go to F6-26, then Find my car from somewhere on the path, follow it back, and tap Arrived.
-  Commit: `Add find my car, help, and arrived`
-
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 4, on your phone at the dorm (matching accuracy and photo angles can still change the rest of the build)
+- [ ] Early usable behavior explored — after slice 7, on your phone at the dorm (matching accuracy and photo angles can still change the wrong-guess fixes in slice 8)
 - [ ] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
@@ -125,3 +135,5 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - When heading to a cube, the stair from the next hallway that lands on your cube's level is hidden (learner circled it in a screenshot: it looked like a second stair into the cube, leading nowhere). The stair from your own hallway into the cube below stays.
 - Rooms set back inside the cube (learner: the stair ran straight into the room) — about 2.6 m of corridor now separates the top of the hallway stair from the end room; plan depth 5 → 6.2 plan-metres, same cube size.
 - Cubes that aren't on your route are greyed out (neutral grey) on your floor too (learner); only the hallway and your own cube stay in colour up close.
+- Plan reordered at the learner's request after slice 3: save my car (4) → find my car, help, arrive (5) → four-side capture pinned by GPS (6, new) → phone test at the dorm (7) → wrong-guess fixes (8). Tradeoff explained: we learn later whether four photos plus 3D run fast enough on the phone.
+- Four-side capture added (learner): front, right, back, left matched together. GPS becomes a pin when accurate (≤ 20 m), via GPS anchors collected at the dorm; it never decides the floor. Floor changes are confirmed by the user after lift/stairs steps rather than detected (a web page can't read the barometer, and motion sensing is unreliable). PRD and spec updated to match.
