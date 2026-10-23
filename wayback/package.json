@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "embeddings": "node scripts/build-embeddings.mjs",
-    "check:match": "node scripts/check-match.mjs"
+    "check:match": "node scripts/check-match.mjs",
+    "import-survey": "node scripts/import-survey.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.1",

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import CaptureButton from "@/components/CaptureButton";
 import HudPanel from "@/components/HudPanel";
 import ModelStatusLine from "@/components/ModelStatusLine";
+import SnapSides, { SIDES } from "@/components/SnapSides";
 import { getGps, type Gps } from "@/lib/gps";
 import { makeThumb } from "@/lib/image";
 import { getSpot } from "@/lib/map";
@@ -32,14 +33,6 @@ const prompts: Record<Mode, string> = {
   help: "Snap around where you are now.",
   where: "Snap around where you are now.",
 };
-
-/** Four-side capture: turn on the spot and snap each way. Any you skip are left out. */
-const SIDES = [
-  { name: "FRONT", hint: "Face the way you're heading (or your car's nose)." },
-  { name: "RIGHT", hint: "Turn right a quarter turn." },
-  { name: "BACK", hint: "Turn right again: face behind you." },
-  { name: "LEFT", hint: "One more quarter turn right." },
-];
 
 export default function LocateFlow() {
   const router = useRouter();
@@ -118,7 +111,15 @@ export default function LocateFlow() {
         <span className="font-hud text-xs tracking-[0.2em] text-glow">LOCATE</span>
       </header>
 
-      {step.kind === "snap" && <SnapSides mode={mode} shots={step.shots} onShot={(f) => addShot(step.shots, f)} onMatch={() => runMatch(step.shots)} />}
+      {step.kind === "snap" && (
+        <SnapSides
+          prompt={prompts[mode]}
+          shots={step.shots}
+          onShot={(f) => addShot(step.shots, f)}
+          action={step.shots.length > 0 ? { label: `SKIP THE REST · MATCH ${step.shots.length}/${SIDES.length}`, onClick: () => runMatch(step.shots) } : undefined}
+          footer={<ModelStatusLine />}
+        />
+      )}
 
       {step.kind === "working" && (
         <section className="flex flex-col items-center gap-4">
@@ -218,45 +219,6 @@ function Result({
       >
         ✓ CONFIRM
       </button>
-    </section>
-  );
-}
-
-function SnapSides({ mode, shots, onShot, onMatch }: { mode: Mode; shots: File[]; onShot: (f: File) => void; onMatch: () => void }) {
-  const side = SIDES[shots.length];
-  // One preview URL per photo, released when the photos change or the screen closes.
-  const previews = useMemo(() => shots.map((f) => URL.createObjectURL(f)), [shots]);
-  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
-  return (
-    <section className="flex flex-1 flex-col items-center gap-5">
-      <p className="text-center text-sm text-muted">{prompts[mode]}</p>
-      <div className="grid w-full grid-cols-4 gap-2">
-        {SIDES.map((s, i) => (
-          <figure key={s.name} className="flex flex-col items-center gap-1">
-            <div
-              className={`aspect-square w-full overflow-hidden rounded-xl border ${i === shots.length ? "border-glow shadow-glow" : "border-edge"}`}
-            >
-              {shots[i] && (
-                // eslint-disable-next-line @next/next/no-img-element -- local camera photo
-                <img src={previews[i]} alt="" className="h-full w-full object-cover" />
-              )}
-            </div>
-            <figcaption className={`font-hud text-[10px] tracking-widest ${i === shots.length ? "text-glow" : "text-muted"}`}>{s.name}</figcaption>
-          </figure>
-        ))}
-      </div>
-      <CaptureButton label={`Snap ${side.name.toLowerCase()}`} onPhoto={onShot} />
-      <p className="text-center text-sm text-ink">{side.hint}</p>
-      {shots.length > 0 && (
-        <button
-          type="button"
-          onClick={onMatch}
-          className="rounded-2xl border border-edge px-5 py-3 font-hud text-xs tracking-widest text-muted active:scale-[0.98]"
-        >
-          SKIP THE REST · MATCH {shots.length}/{SIDES.length}
-        </button>
-      )}
-      <ModelStatusLine />
     </section>
   );
 }

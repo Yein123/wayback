@@ -48,6 +48,10 @@ export default function Home() {
       <ParkingCard parking={current} loading={loading} />
       {error && <p className="text-xs text-amber">Couldn&apos;t load your parkings: {error}</p>}
       <HistoryList history={history} />
+
+      <Link href="/survey" className="self-center font-hud text-[10px] tracking-[0.3em] text-muted">
+        SURVEY MODE ›
+      </Link>
     </main>
   );
 }
