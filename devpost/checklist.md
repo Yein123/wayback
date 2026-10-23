@@ -59,7 +59,7 @@ Build mode: fast
   Learner check: On the laptop, capture a parking, go to F6-26 (confirming the floor after the lift), then Find my car with a photo from the path, follow it back, and tap Arrived.
   Commit: `Add find my car, help, and arrived`
 
-- [ ] **6. Where to? and capture four sides, pinned by GPS**
+- [x] **6. Where to? and capture four sides, pinned by GPS**
   Becomes usable: Capture (parking, Find my car, Help / "I'm lost") guides you through four photos — front, right, back, left — and matches them together, so a spot must look right from several directions. When your phone has an accurate GPS fix and the building's GPS anchors are set, spots far from you are ruled out first. You can skip the remaining sides. Home also gets a **Where to?** button (learner): type a room, capture the four sides where you are (with GPS), and the route starts from there — no parking needed.
   Why now: You asked for it to make locating reliable in identical-looking hallways and car park bays, and so being lost always leads back to a route. It builds on the matcher and the Help flow from slice 5.
   PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Help While Walking`, `prd.md > States and Boundaries` (no GPS signal)
