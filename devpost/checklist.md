@@ -79,7 +79,7 @@ Build mode: fast
   Learner check: Tap ADD BUILDING, name a building (try M06 or a mall), add two floors with a plan photo each, reload, and say whether the steps are clear.
   Commit: `Add buildings with uploaded floor plans`
 
-- [ ] **8. Draw each floor's outline and see the building in 3D**
+- [x] **8. Draw each floor's outline and see the building in 3D**
   Becomes usable: On a floor's plan you set the scale (tap two points and say how many metres apart), then tap around the walls and spaces to draw outlines (hallway, room, lobby, lift, stairs). The building page shows every floor stacked in 3D, raised from those outlines, with the plan underneath.
   Why now: It turns the uploaded plans into the 3D you asked for, and it's the core of the map editor for any building. It comes right after the upload it builds on.
   PRD ref: `prd.md > Adding a Building`
