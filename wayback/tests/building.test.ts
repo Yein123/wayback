@@ -31,10 +31,10 @@ describe("building", () => {
     expect(near(spot.pos, cubePoint(cube, CUBE_ENTRY_X, 0.6))).toBeLessThan(0.2);
     expect(near(getSpot("room-f6-26")!.pos, cubePoint(cube, -1.63, 3.85))).toBeLessThan(0.2);
     expect(spotLevel(spot)).toBe(floorLevel("5") + cube.half);
-    expect(cube.door).toEqual(getSpot("se-stair-2")!.pos);
+    expect(near(cube.door, getSpot("se-stair-2")!.pos)).toBeLessThan(0.2);
   });
 
-  it("mirrors cubes across the hallway: stairs on your right walking into the demo cube, on your left opposite", () => {
+  it("alternates the stairs: facing a stack, stairs 1 and 3 come in on the left, 2 and 4 on the right", () => {
     // which side of "walking in" a plan point lands on: > 0 is your right (map y points south)
     const sideOf = (c: Cube, x: number) => {
       const [px, py] = cubePoint(c, x, 1);
@@ -42,11 +42,15 @@ describe("building", () => {
       const [ox, oy] = cubePoint(c, 0, 0);
       return fx * (py - oy) - fy * (px - ox);
     };
-    const demo = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "left")!;
-    const opposite = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "right")!;
-    const stairsX = 2.7;
-    expect(sideOf(demo, stairsX)).toBeGreaterThan(0);
-    expect(sideOf(opposite, stairsX)).toBeLessThan(0);
+    for (const c of cubes()) {
+      // the stair arrives at the entry gap: on your right for stairs 2 and 4, your left for 1 and 3
+      const right = sideOf(c, CUBE_ENTRY_X) > 0;
+      expect(right, `${c.hallway} ${c.side} stair ${c.stair}`).toBe(c.stair === 2 || c.stair === 4);
+      // and it runs straight in from the hallway, not at a slant
+      const entry = cubePoint(c, CUBE_ENTRY_X, 0);
+      const [dx, dy] = [entry[0] - c.door[0], entry[1] - c.door[1]];
+      expect(Math.abs(dx * c.inward[1] - dy * c.inward[0])).toBeLessThan(1e-9);
+    }
   });
 
   it("swaps the toilet and the stairs between the cube's two floors", () => {
@@ -59,8 +63,11 @@ describe("building", () => {
   });
 
   it("mirrors the SE hallway into the other three", () => {
-    expect(hallwayPath("SE")[2]).toEqual([27, 21]);
-    expect(hallwayPath("NW")[2]).toEqual([-27, -21]);
-    expect(hallwayPath("NE")[2]).toEqual([27, -21]);
+    const [x, y] = hallwayPath("SE")[2];
+    expect(x).toBeGreaterThan(0);
+    expect(y).toBeGreaterThan(0);
+    expect(hallwayPath("NW")[2]).toEqual([-x, -y]);
+    expect(hallwayPath("NE")[2]).toEqual([x, -y]);
+    expect(hallwayPath("SW")[2]).toEqual([-x, y]);
   });
 });

@@ -558,8 +558,11 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
   if (!spot) return null;
   const room = ids.map((id) => getSpot(id)!).find((s) => s.type === "room");
 
-  const near = (c: Cube) => Math.hypot(c.center[0] - spot.pos[0], c.center[1] - spot.pos[1]);
-  // stacked cubes share a footprint, so the nearest one is the right shape either way
+  // The cube spot sits just inside its entry gap; that tells the two mirrored cubes of a stack apart.
+  const near = (c: Cube) => {
+    const [ex, ey] = cubePoint(c, CUBE_ENTRY_X, 0.6);
+    return Math.hypot(ex - spot.pos[0], ey - spot.pos[1]);
+  };
   const cube = cubes().reduce((a, b) => (near(b) < near(a) ? b : a));
   // Your room is whichever room on the plan its map position falls closest to.
   const roomCenter = (p: CubePart) => cubePoint(cube, (p.x[0] + p.x[1]) / 2, (p.d[0] + p.d[1]) / 2);
