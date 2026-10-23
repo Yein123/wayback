@@ -26,10 +26,10 @@ describe("building", () => {
   it("puts the demo cube on the left of SE stair 2, half a flight above floor 5", () => {
     const cube = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "left")!;
     const spot = getSpot("cube-f6-25")!;
-    // the cube spot is just inside its entry gap, and F6-26 is room 2 on the plan
+    // the cube spot is just inside its entry gap, and F6-26 is room 3 on the plan (the middle door)
     const near = (p: [number, number], q: [number, number]) => Math.hypot(p[0] - q[0], p[1] - q[1]);
     expect(near(spot.pos, cubePoint(cube, CUBE_ENTRY_X, 0.6))).toBeLessThan(0.2);
-    expect(near(getSpot("room-f6-26")!.pos, cubePoint(cube, 1.7, 3.85))).toBeLessThan(0.2);
+    expect(near(getSpot("room-f6-26")!.pos, cubePoint(cube, -1.63, 3.85))).toBeLessThan(0.2);
     expect(spotLevel(spot)).toBe(floorLevel("5") + cube.half);
     expect(cube.door).toEqual(getSpot("se-stair-2")!.pos);
   });

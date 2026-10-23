@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { CUBE, CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube } from "@/lib/building";
+import { CUBE, CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube, type CubePart } from "@/lib/building";
 import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
 import type { Step } from "@/lib/route";
 
@@ -557,11 +557,14 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
   const spot = ids.map((id) => getSpot(id)!).find((s) => s.type === "cube");
   if (!spot) return null;
   const room = ids.map((id) => getSpot(id)!).find((s) => s.type === "room");
-  // F6-25 … F6-28 are rooms 1 … 4 of their cube.
-  const target = room?.room ? ((Number(room.room.split("-")[1]) - 1) % 4) + 1 : null;
 
   const near = (c: Cube) => Math.hypot(c.center[0] - spot.pos[0], c.center[1] - spot.pos[1]);
+  // stacked cubes share a footprint, so the nearest one is the right shape either way
   const cube = cubes().reduce((a, b) => (near(b) < near(a) ? b : a));
+  // Your room is whichever room on the plan its map position falls closest to.
+  const roomCenter = (p: CubePart) => cubePoint(cube, (p.x[0] + p.x[1]) / 2, (p.d[0] + p.d[1]) / 2);
+  const dist = (p: CubePart) => (room ? Math.hypot(roomCenter(p)[0] - room.pos[0], roomCenter(p)[1] - room.pos[1]) : Infinity);
+  const target = room ? cubePlan(1).filter((p) => p.kind === "room").reduce((a, b) => (dist(b) < dist(a) ? b : a)).room : null;
   const level = spotLevel(spot);
   const angle = (cube.angle * Math.PI) / 180;
   const storey = CUBE_H / 2;

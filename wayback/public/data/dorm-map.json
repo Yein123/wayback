@@ -18,7 +18,7 @@
     { "id": "se-stair-3", "label": "SE Hallway · Stair 3 (up)", "floor": "5", "type": "hallway", "signText": ["F6-29", "F6-32", "F6-33", "F6-36"], "pos": [40,31] },
     { "id": "se-stair-4", "label": "SE Hallway · Stair 4 (down)", "floor": "5", "type": "hallway", "signText": ["F5-29", "F5-32", "F5-33", "F5-36"], "pos": [53,41] },
     { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [], "pos": [26.8,9.4], "level": 4.5 },
-    { "id": "room-f6-26", "label": "Room F6-26", "floor": "6", "type": "room", "room": "F6-26", "pos": [29.4,7.3], "level": 4.5 }
+    { "id": "room-f6-26", "label": "Room F6-26", "floor": "6", "type": "room", "room": "F6-26", "pos": [26.8,5.2], "level": 4.5 }
   ],
   "links": [
     { "from": "cp-se", "to": "entrance-se", "cost": 30, "instruction": "Walk to the SE entrance", "diagram": { "kind": "door", "label": "SE ENTRANCE" } },
@@ -72,7 +72,7 @@
     { "from": "se-stair-2", "to": "cube-f6-25", "cost": 10, "instruction": "Take the stairs on your left half a flight up, into cube F6-25 – 28", "diagram": { "kind": "half-stairs", "dir": "up", "side": "left" } },
     { "from": "cube-f6-25", "to": "se-stair-2", "cost": 10, "instruction": "Go half a flight down to the SE hallway, then turn right toward the lifts", "diagram": { "kind": "half-stairs", "dir": "down", "side": "right" } },
 
-    { "from": "cube-f6-25", "to": "room-f6-26", "cost": 8, "instruction": "Walk in: the third door is F6-26", "diagram": { "kind": "cube", "door": 3, "label": "F6-26" } },
-    { "from": "room-f6-26", "to": "cube-f6-25", "cost": 8, "instruction": "Walk back past two doors to the cube stairs", "diagram": { "kind": "walk", "label": "CUBE STAIRS" } }
+    { "from": "cube-f6-25", "to": "room-f6-26", "cost": 8, "instruction": "Walk in, turn left along the corridor: F6-26 is the middle door on your right", "diagram": { "kind": "cube", "door": 3, "label": "F6-26" } },
+    { "from": "room-f6-26", "to": "cube-f6-25", "cost": 8, "instruction": "Come out of F6-26, turn right and walk back to the cube stairs", "diagram": { "kind": "walk", "label": "CUBE STAIRS" } }
   ]
 }
