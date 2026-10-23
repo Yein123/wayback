@@ -160,7 +160,10 @@ function Scene({
   look: React.RefObject<Look>;
 }) {
   const { camera } = useThree();
-  const layers = useMemo(() => getLayers(), []);
+  const detail = useMemo(() => cubeDetail(steps), [steps]);
+  // The other cube in your cube's stack keeps its walls but not its stair, so only your stair meets your cube.
+  const skip = detail?.partnerStair ?? "";
+  const layers = useMemo(() => getLayers(skip), [skip]);
   const top = (FLOORS.length - 2) * FH;
   const towerCenter = useMemo(() => new THREE.Vector3(0, top / 2 - 2 * FH, 0), [top]);
 
@@ -224,7 +227,6 @@ function Scene({
   const end = useMemo(() => toWorld(getSpot(steps.at(-1)!.to)!), [steps]);
   const beacon = useRef<THREE.Mesh>(null);
   const ring = useRef<THREE.Mesh>(null);
-  const detail = useMemo(() => cubeDetail(steps), [steps]);
   const detailGroup = useRef<THREE.Group>(null);
 
   useFrame((state, dt) => {
@@ -265,7 +267,7 @@ function Scene({
       levelRef.current(here);
     }
     // Materials fade in the frame loop; they live outside React so this is a plain three.js update.
-    for (const l of getLayers()) {
+    for (const l of getLayers(skip)) {
       // Your floor is the hallway level you're on plus its cubes half a flight up and down.
       const current = Math.abs(l.level - Math.floor(here)) <= 0.5;
       const wide = overview || out.current > 0.5;
@@ -450,14 +452,19 @@ type Layer = {
   color: THREE.Color;
 };
 
-let built: Layer[] | null = null;
-function getLayers(): Layer[] {
-  built ??= buildLayers();
-  return built;
+const built = new Map<string, Layer[]>();
+function getLayers(skipStair: string): Layer[] {
+  if (!built.has(skipStair)) built.set(skipStair, buildLayers(skipStair));
+  return built.get(skipStair)!;
+}
+
+/** Names one cube's hallway stair on one floor, e.g. "SE left 1 @4". */
+function stairKey(c: Cube, level: number): string {
+  return `${c.hallway} ${c.side} ${c.stair} @${level}`;
 }
 
 /** Every floor and every half level of cubes as one merged mesh + outline each, so the whole block is ~50 draw calls. */
-function buildLayers(): Layer[] {
+function buildLayers(skipStair: string): Layer[] {
   const boxes = new Map<number, Box[]>();
   const add = (level: number, box: Box) => boxes.set(level, [...(boxes.get(level) ?? []), box]);
   const allCubes = cubes();
@@ -489,7 +496,7 @@ function buildLayers(): Layer[] {
       // half a flight from the hallway's edge up (or down) to the cube's entry gap
       const to = cubePoint(c, CUBE_ENTRY_X, 0);
       const from: [number, number] = [c.door[0] + c.inward[0] * 2.5, c.door[1] + c.inward[1] * 2.5];
-      for (const b of flight(from, to, level * FH, c.half * FH, 1.4)) add(level + c.half, b);
+      if (!skipStair.split("|").includes(stairKey(c, level))) for (const b of flight(from, to, level * FH, c.half * FH, 1.4)) add(level + c.half, b);
     }
   }
 
@@ -544,6 +551,8 @@ function mergeBoxes(list: Box[]): { fill: THREE.BufferGeometry; edge: THREE.Buff
 
 type CubeDetail = {
   level: number;
+  /** The other stairs that meet your cube's stack around its level (hidden), joined with "|". */
+  partnerStair: string;
   parts: Record<"slabs" | "rooms" | "target" | "toilet" | "upper", { fill: THREE.BufferGeometry; edge: THREE.BufferGeometry } | null>;
 };
 
@@ -592,7 +601,12 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
   const parts = Object.fromEntries(
     Object.entries(groups).map(([k, list]) => [k, list.length ? mergeBoxes(list) : null]),
   ) as CubeDetail["parts"];
-  return { level, parts };
+  // The mirrored cube of the stack is reached by the partner stair (1 ↔ 2, 3 ↔ 4): from this hallway
+  // into the cube below or above yours, and from the next hallway into the cube on your own level.
+  const hallwayLevel = level - cube.half;
+  const partner = { ...cube, stair: cube.stair <= 2 ? 3 - cube.stair : 7 - cube.stair };
+  const hidden = [stairKey(partner, hallwayLevel), stairKey(partner, hallwayLevel + 2 * cube.half)];
+  return { level, parts, partnerStair: hidden.join("|") };
 }
 
 /** A flight of stairs from `a` to `b` (map points), starting at height y0 and climbing `rise` (negative goes down). */
