@@ -29,7 +29,17 @@ Build mode: fast
   Learner check: Confirm a parking guess, type `F6-26`, step through the directions, and say whether each step matches what you'd actually do in M06; then type a made-up room and see the "doesn't know room" message.
   Commit: `Route from parking spot to a room with step diagrams`
 
-- [ ] **3. Open Wayback on your phone at the dorm**
+- [ ] **3. See the whole building in 3D and dive into your route**
+  Becomes usable: Directions opens on a full-height, game-like 3D view of the whole M06 block — every floor from B2 to 10 with its lift lobby, the X of hallways and the 32 split-level cubes — then the camera dives into your floor and follows the glowing route step by step. A 2D toggle shows the full plan of the floor you're on.
+  Why now: You asked for an immersive, game-like view of the exact building structure. It goes before the phone test so that test also tells us whether the 3D scene and CLIP run smoothly together on your phone.
+  PRD ref: `prd.md > The Core Journey` (steps 4–6), `prd.md > Guiding to a Room`, `prd.md > Look and Feel`
+  Spec ref: `spec.md > Stack`, `spec.md > Look and Feel`, `spec.md > Components` (Screens, Step Diagram), `spec.md > Data Model` (Dorm map, Demo building)
+  Build: `lib/building.ts` generates every floor from the layout rules (lobby, X hallways, 4 stairs per hallway, lower/upper cubes half a flight off the hallway); spot positions and half-levels in `dorm-map.json`; three.js + react-three-fiber `components/Building3D.tsx` with a tower overview, a dive-in camera and a camera that follows the route; `components/RouteSim.tsx` as the 2D floor plan; Directions screen with a large immersive view above the step text and photo.
+  Verify (mechanical): `npm test` passes building tests (32 cubes per floor, the demo cube on the left of SE stair 2 half a flight above floor 5); `npm run build` passes; in the browser, the F6-26 route shows the overview, dives in, follows Next/Back and Play, the 2D toggle works, and there are no console errors.
+  Learner check: Run `npm run dev`, type `F6-26` from a parking guess, watch the building overview and the dive, step through the route, switch to 2D, and say whether it feels like the game you pictured and whether the structure looks like M06.
+  Commit: `Show the whole building in 3D and dive into the route`
+
+- [ ] **4. Open Wayback on your phone at the dorm**
   Becomes usable: A real `https://` link that opens on your phone, uses the phone camera, and runs the AI matching on the phone itself.
   Why now: The phone is where this app lives, and CLIP on a phone browser (speed, model download, WASM fallback) is the biggest unknown left. Testing at the dorm now tells us whether the reference photos and angles are good enough while there's still time to retake them.
   PRD ref: `prd.md > The Core Journey` (steps 1–6), `prd.md > Capturing the Parking Spot`
@@ -39,9 +49,9 @@ Build mode: fast
   Learner check: Open the link on your phone, snap three real spots on the demo path (car park, floor 5 lobby, SE stair 2), and tell me for each one whether the guess was right and how long it took.
   Commit: `Add README and deployment notes for phone testing`
 
-- [ ] **4. Fix a wrong guess: other guesses, sign photo, pick from list**
+- [ ] **5. Fix a wrong guess: other guesses, sign photo, pick from list**
   Becomes usable: When the guess is wrong you tap "No, that's wrong" and pick from the next best photos; if none fit, you snap a sign and it re-matches using the sign's text; if that still fails, you pick your spot from a list grouped by floor. Visible signs like "F6-25 - F6-28" now boost the right guess on every match.
-  Why now: Slice 3 shows how often matching is wrong in real life. This slice makes sure no wrong guess ever leaves you stuck, and adds the sign reading that matters most in identical-looking hallways.
+  Why now: Slice 4 shows how often matching is wrong in real life. This slice makes sure no wrong guess ever leaves you stuck, and adds the sign reading that matters most in identical-looking hallways.
   PRD ref: `prd.md > Fixing a Wrong Location`, `prd.md > Capturing the Parking Spot` (readable sign helps the guess), `prd.md > States and Boundaries` (unsure match)
   Spec ref: `spec.md > Components` (Locate Flow steps 4–6, Location Matcher), `spec.md > External Services and Dependencies` (Tesseract.js), `spec.md > Important Failure Modes`
   Build: Add Tesseract.js OCR to `lib/matcher.ts` and the sign bonus to `lib/scoring.ts` (with tests), then Other Guesses (`GuessCard`), the sign-photo step, and `SpotListPicker`. Tune the sign bonus against the real sign photos.
@@ -49,7 +59,7 @@ Build mode: fast
   Learner check: Snap a photo, tap "No, that's wrong", try picking another guess, then try "None of these" with a sign photo, then the list — and say whether any path felt slow or confusing.
   Commit: `Add guess fixes, sign reading, and list picker`
 
-- [ ] **5. Your parking is remembered after you close the app**
+- [ ] **6. Your parking is remembered after you close the app**
   Becomes usable: Confirming a parking saves it. Home shows the Current Parking card with the label, photo thumbnail and time, and it's still there after you close and reopen the app. Capturing a new parking moves the old one into Parking History.
   Why now: The route and matching now work, so saving their result is next. Firebase is familiar to you and low-risk, but it needs your Firebase project and keys, so it waits until the core works.
   PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Screens and Layout` (Home), `prd.md > States and Boundaries` (first use, parked, coming back later)
@@ -59,7 +69,7 @@ Build mode: fast
   Learner check: Capture and confirm a parking, close the tab, reopen the app, and check the card is still there with your photo; then capture again and see the first one move to history.
   Commit: `Save current parking and history in Firestore`
 
-- [ ] **6. Find my car, get help, and arrive**
+- [ ] **7. Find my car, get help, and arrive**
   Becomes usable: The whole loop. "Find my car" asks you to snap where you are, locates you (with the same fixes), and walks you back by the shortest route. Help on any step re-locates you and gives fresh steps. Arrived on the last step ends the parking, moves it to history, and empties the card.
   Why now: It reuses everything already built — matching, fixes, routing, storage — so it's the last piece, and it completes the demo journey.
   PRD ref: `prd.md > The Core Journey` (steps 7–10), `prd.md > Finding the Car`, `prd.md > Help While Walking`, `prd.md > Arriving and Parking History`
@@ -71,7 +81,7 @@ Build mode: fast
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 3, on your phone at the dorm (matching accuracy and photo angles can still change the rest of the build)
+- [ ] Early usable behavior explored — after slice 4, on your phone at the dorm (matching accuracy and photo angles can still change the rest of the build)
 - [ ] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
@@ -99,4 +109,7 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - The NE and SW cube photos aren't in the reference set yet, and SE stairs 1–3 match each other closely (0.786 vs 0.775 for stair 2) — sign reading in slice 4 is what separates them.
 - Car park entrances and the B2 path (SW/NW entrance → B2 hallway → B2 lift lobby) built from the spec's facts after two unanswered questions — the B2 hallway leg and all walking costs are assumptions to confirm on the phone at the dorm in slice 3. Lift steps say "any lift" instead of highlighting one, since all four lifts stop at the same floors; the floor 5 turn follows the "F6-25 – F6-40 →" sign rather than left/right, because the lifts face each other.
 - Trip State is a small `useSyncExternalStore` store in `lib/trip.ts` instead of a React context provider — same sessionStorage behavior with less wiring.
-
+- New slice 3 (whole-building 3D, dive-in camera) added before the phone test at the learner's request — they wanted a game-like, immersive view showing the exact building structure rather than only the route. Later slices renumbered 4–7; the early hands-on checkpoint moves to after slice 4.
+- three.js + @react-three/fiber added to the stack for the 3D view (learner agreed after hearing the cost: a new library and a heavier load on the phone next to CLIP). No drei, to keep the bundle small. The 2D view stays the lighter CSS/SVG plan.
+- Floors assumed B2, B1, 1–10 (lifts stop at 9, even floors by stairs) — learner confirmed every floor has the same layout; the floor list is one constant in `lib/building.ts`.
+- Cube F6-25 – 28 moved to the left of SE stair 2 in the map to match the "stairs on your left" directions; cube and room spots now sit half a flight (level 4.5) above the floor 5 hallway.

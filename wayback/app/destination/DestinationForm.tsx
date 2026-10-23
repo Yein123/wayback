@@ -23,7 +23,7 @@ export default function DestinationForm() {
       setUnknown(normalizeRoom(room) || room);
       return;
     }
-    startTrip({ mode: "toRoom", from, to, steps: toSteps(path, { target: "room", label: getSpot(to)!.label }) });
+    startTrip({ mode: "toRoom", from, to, steps: toSteps(path, { target: "room", label: getSpot(to)!.label }, to) });
     router.push("/directions");
   }
 

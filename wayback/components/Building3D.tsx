@@ -1,0 +1,425 @@
+"use client";
+
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName } from "@/lib/building";
+import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
+import type { Step } from "@/lib/route";
+
+const FH = 7; // world units per floor (stretched so the tower reads as a tower)
+const GLOW = "#3EE6F2";
+const VIOLET = "#9B7BFF";
+const VOID = "#070B12";
+const GREY = new THREE.Color("#3A4656");
+const INTRO_MS = 2600; // circle the whole tower
+const DIVE_MS = 2200; // then fly down to you
+
+type Walk = { start: THREE.Vector3; end: THREE.Vector3; t0: number; dur: number; h0: number; h1: number; index: number; done: boolean };
+
+/**
+ * The whole M06 block in 3D. Opens on the full tower, dives down to where you stand,
+ * then follows you along the route like a game camera. "Overview" flies back out.
+ */
+export default function Building3D({
+  steps,
+  stepIndex,
+  onWalked,
+}: {
+  steps: Step[];
+  stepIndex: number;
+  onWalked: (index: number) => void;
+}) {
+  const [level, setLevel] = useState(() => spotLevel(getSpot(steps[stepIndex].from)!));
+  const [overview, setOverview] = useState(false);
+
+  return (
+    <div className="relative h-full w-full">
+      <Canvas
+        dpr={[1, 2]}
+        camera={{ fov: 50, near: 0.5, far: 900, position: [170, 120, 170] }}
+        gl={{ antialias: true }}
+        fallback={<p className="p-6 text-sm text-muted">This phone can&apos;t draw 3D. Switch to 2D.</p>}
+      >
+        <Scene steps={steps} stepIndex={stepIndex} onWalked={onWalked} overview={overview} onLevel={setLevel} />
+      </Canvas>
+
+      <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-edge bg-panel/80 px-2.5 py-1 font-hud text-xs tracking-widest text-glow">
+        {overview ? "M06 · ALL FLOORS" : levelName(Math.round(level))}
+      </div>
+      <button
+        type="button"
+        onClick={() => setOverview(!overview)}
+        className={`absolute bottom-3 right-3 rounded-lg border px-2.5 py-1 font-hud text-[10px] tracking-widest ${overview ? "border-glow/60 bg-glow/20 text-glow" : "border-edge bg-panel/80 text-muted"}`}
+      >
+        {overview ? "DIVE IN" : "OVERVIEW"}
+      </button>
+    </div>
+  );
+}
+
+function Scene({
+  steps,
+  stepIndex,
+  onWalked,
+  overview,
+  onLevel,
+}: {
+  steps: Step[];
+  stepIndex: number;
+  onWalked: (index: number) => void;
+  overview: boolean;
+  onLevel: (level: number) => void;
+}) {
+  const { camera } = useThree();
+  const layers = useMemo(() => getLayers(), []);
+  const top = (FLOORS.length - 2) * FH;
+  const towerCenter = useMemo(() => new THREE.Vector3(0, top / 2 - 2 * FH, 0), [top]);
+
+  const you = useRef<THREE.Group>(null);
+  const youPos = useRef(toWorld(getSpot(steps[stepIndex].from)!));
+  const heading = useRef(initialHeading(steps));
+  const walk = useRef<Walk | null>(null);
+  const shown = useRef(spotLevel(getSpot(steps[stepIndex].from)!));
+  const walkedRef = useRef(onWalked);
+  const levelRef = useRef(onLevel);
+  const still = useRef(false);
+  const mounted = useRef(0);
+  // The camera's "flying out" amount: 1 = whole tower, 0 = following you.
+  const out = useRef(1);
+  const lookAt = useRef(towerCenter.clone());
+
+  useEffect(() => {
+    walkedRef.current = onWalked;
+    levelRef.current = onLevel;
+  });
+
+  useEffect(() => {
+    still.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    mounted.current = performance.now();
+    if (still.current) out.current = 0;
+  }, []);
+
+  // Start this step's walk from its first spot (so BACK and replays line up too).
+  useEffect(() => {
+    const step = steps[stepIndex];
+    const a = getSpot(step.from);
+    const b = getSpot(step.to);
+    if (!a || !b) return;
+    const start = toWorld(a);
+    const end = toWorld(b);
+    const flat = Math.hypot(end.x - start.x, end.z - start.z);
+    const climb = Math.abs(end.y - start.y) / FH;
+    const dur = still.current ? 0 : flat > 0.5 ? clamp(flat * 110, 1100, 3600) : climb > 0 ? 800 + climb * 450 : 0;
+    // On first open, wait for the intro flight before walking.
+    const introLeft = mounted.current ? Math.max(0, mounted.current + INTRO_MS + DIVE_MS - performance.now()) : INTRO_MS + DIVE_MS;
+    walk.current = {
+      start,
+      end,
+      t0: performance.now() + (still.current ? 0 : introLeft),
+      dur,
+      h0: heading.current,
+      h1: flat > 0.5 ? Math.atan2(end.z - start.z, end.x - start.x) : heading.current,
+      index: stepIndex,
+      done: false,
+    };
+  }, [steps, stepIndex]);
+
+  const route = useMemo(() => routeTubes(steps, stepIndex), [steps, stepIndex]);
+  const end = useMemo(() => toWorld(getSpot(steps.at(-1)!.to)!), [steps]);
+  const beacon = useRef<THREE.Mesh>(null);
+  const ring = useRef<THREE.Mesh>(null);
+
+  useFrame((state, dt) => {
+    const now = performance.now();
+
+    // walking
+    const w = walk.current;
+    if (w) {
+      const ms = now - w.t0;
+      const turn = w.dur === 0 ? 1 : ease(clamp(ms / 500, 0, 1));
+      const k = w.dur === 0 ? 1 : ease(clamp((ms - 250) / w.dur, 0, 1));
+      heading.current = lerpAngle(w.h0, w.h1, turn);
+      youPos.current.lerpVectors(w.start, w.end, k);
+      if (k >= 1 && turn >= 1 && !w.done) {
+        w.done = true;
+        walkedRef.current(w.index);
+      }
+    }
+    const p = youPos.current;
+    if (you.current) {
+      you.current.position.copy(p);
+      you.current.rotation.y = -heading.current;
+    }
+
+    // which floor is lit
+    const here = Math.round((p.y / FH) * 2) / 2;
+    if (here !== shown.current) {
+      shown.current = here;
+      levelRef.current(here);
+    }
+    // Materials fade in the frame loop; they live outside React so this is a plain three.js update.
+    for (const l of getLayers()) {
+      // Your floor is the hallway level you're on plus its cubes half a flight up and down.
+      const current = Math.abs(l.level - Math.floor(here)) <= 0.5;
+      const wide = overview || out.current > 0.5;
+      // Up close it's a cut-away: everything above your floor disappears so the camera can see in,
+      // and the floors below go dark grey so only your floor reads as "here".
+      const above = !wide && l.level > Math.floor(here) + 0.5;
+      const fill = above ? 0 : current ? 0.5 : wide ? 0.16 : 0.025;
+      const edge = above ? 0 : current ? 0.9 : wide ? 0.3 : 0.1;
+      l.fill.opacity += (fill - l.fill.opacity) * 0.1;
+      l.edge.opacity += (edge - l.edge.opacity) * 0.1;
+      l.edge.color.lerp(current || wide ? l.color : GREY, 0.1);
+    }
+
+    // camera: intro orbit → dive → follow; overview flies back out
+    const sinceOpen = now - mounted.current;
+    const intro = !still.current && sinceOpen < INTRO_MS;
+    const wantOut = overview || intro ? 1 : 0;
+    const diving = !still.current && !overview && sinceOpen >= INTRO_MS && sinceOpen < INTRO_MS + DIVE_MS;
+    if (diving) out.current = 1 - ease((sinceOpen - INTRO_MS) / DIVE_MS);
+    else out.current += (wantOut - out.current) * (1 - Math.exp(-dt * 2.5));
+
+    const fwd = new THREE.Vector3(Math.cos(heading.current), 0, Math.sin(heading.current));
+    const followPos = p.clone().addScaledVector(fwd, -24).add(new THREE.Vector3(0, 30, 0));
+    const followLook = p.clone().addScaledVector(fwd, 10);
+    const orbit = state.clock.elapsedTime * 0.25;
+    const overPos = new THREE.Vector3(Math.cos(orbit) * 175, towerCenter.y + 95, Math.sin(orbit) * 175);
+
+    const o = out.current;
+    const targetPos = followPos.lerp(overPos, o);
+    const targetLook = followLook.lerp(towerCenter, o);
+    const k = diving ? 1 : 1 - Math.exp(-dt * 4);
+    camera.position.lerp(targetPos, k);
+    lookAt.current.lerp(targetLook, k);
+    camera.lookAt(lookAt.current);
+
+    // destination beacon pulse
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.15;
+    ring.current?.scale.set(pulse, pulse, pulse);
+    if (beacon.current) (beacon.current.material as THREE.MeshBasicMaterial).opacity = 0.18 + Math.sin(state.clock.elapsedTime * 2) * 0.06;
+  });
+
+  return (
+    <>
+      <color attach="background" args={[VOID]} />
+      <fog attach="fog" args={[VOID, 90, 420]} />
+      <ambientLight intensity={0.5} />
+      <hemisphereLight args={["#5fd6ff", "#0b0f1a", 0.6]} />
+      <directionalLight position={[80, 160, 60]} intensity={0.8} />
+
+      {layers.map((l) => (
+        <group key={l.level}>
+          <mesh geometry={l.fillGeometry} material={l.fill} />
+          <lineSegments geometry={l.edgeGeometry} material={l.edge} />
+        </group>
+      ))}
+
+      <LiftShafts top={top} />
+
+      {/* route: walked, now, ahead */}
+      {route.done && <Tube tube={route.done} color={VIOLET} opacity={0.6} />}
+      {route.ahead && <Tube tube={route.ahead} color={GLOW} opacity={0.75} />}
+      {route.now && <Tube tube={route.now} color={GLOW} opacity={1} wide />}
+
+      {/* destination */}
+      <mesh ref={beacon} position={[end.x, end.y + 30, end.z]}>
+        <cylinderGeometry args={[1.4, 1.4, 60, 16, 1, true]} />
+        <meshBasicMaterial color={GLOW} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={ring} position={[end.x, end.y + 0.6, end.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[3.2, 0.25, 8, 40]} />
+        <meshBasicMaterial color={GLOW} toneMapped={false} />
+      </mesh>
+
+      {/* you */}
+      <group ref={you}>
+        <mesh position={[0, 1.6, 0]} rotation={[0, 0, -Math.PI / 2]}>
+          <coneGeometry args={[1.3, 3.6, 4]} />
+          <meshBasicMaterial color={GLOW} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 0.25, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[2.2, 2.8, 32]} />
+          <meshBasicMaterial color={GLOW} transparent opacity={0.6} depthWrite={false} />
+        </mesh>
+        <pointLight color={GLOW} intensity={60} distance={30} position={[0, 4, 0]} />
+      </group>
+    </>
+  );
+}
+
+function Tube({ tube, color, opacity, wide }: { tube: RouteTube; color: string; opacity: number; wide?: boolean }) {
+  return (
+    <group>
+      <mesh geometry={tube.core}>
+        <meshBasicMaterial color={color} transparent opacity={opacity} toneMapped={false} />
+      </mesh>
+      {/* soft glow shell */}
+      <mesh geometry={tube.glow}>
+        <meshBasicMaterial color={color} transparent opacity={wide ? 0.3 : 0.12} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+    </group>
+  );
+}
+
+function LiftShafts({ top }: { top: number }) {
+  const bottom = floorLevel("B2") * FH;
+  const height = top + FH - bottom;
+  return (
+    <group>
+      {[-4, -1.3, 1.3, 4].flatMap((x) =>
+        [-4.3, 4.3].map((z) => (
+          <mesh key={`${x}${z}`} position={[x, bottom + height / 2, z]}>
+            <boxGeometry args={[2, height, 2]} />
+            <meshBasicMaterial color={GLOW} transparent opacity={0.05} depthWrite={false} blending={THREE.AdditiveBlending} />
+          </mesh>
+        )),
+      )}
+    </group>
+  );
+}
+
+// ---- geometry ----
+
+type Box = { center: [number, number, number]; size: [number, number, number]; angle?: number };
+
+type Layer = {
+  level: number;
+  fillGeometry: THREE.BufferGeometry;
+  edgeGeometry: THREE.BufferGeometry;
+  fill: THREE.MeshStandardMaterial;
+  edge: THREE.LineBasicMaterial;
+  /** Outline colour when lit; it fades to grey when it's not your floor. */
+  color: THREE.Color;
+};
+
+let built: Layer[] | null = null;
+function getLayers(): Layer[] {
+  built ??= buildLayers();
+  return built;
+}
+
+/** Every floor and every half level of cubes as one merged mesh + outline each, so the whole block is ~50 draw calls. */
+function buildLayers(): Layer[] {
+  const boxes = new Map<number, Box[]>();
+  const add = (level: number, box: Box) => boxes.set(level, [...(boxes.get(level) ?? []), box]);
+  const allCubes = cubes();
+
+  for (const floor of FLOORS) {
+    const level = floorLevel(floor);
+    const y = level * FH;
+    add(level, { center: [0, y - 0.25, 0], size: [16, 0.5, 16] });
+    for (const h of HALLWAYS) {
+      const path = hallwayPath(h);
+      for (let i = 1; i < path.length; i++) add(level, segment(path[i - 1], path[i], y, 5));
+      const [ex, ey] = path.at(-1)!;
+      // staircase tower at the hallway's end
+      add(level, { center: [ex, y + FH / 2, ey], size: [4, FH, 4], angle: Math.atan2(ey, ex) });
+    }
+  }
+
+  for (const floor of FLOORS) {
+    const level = floorLevel(floor);
+    for (const c of allCubes) {
+      const base = (level + c.half) * FH;
+      const angle = (c.angle * Math.PI) / 180;
+      add(level + c.half, { center: [c.center[0], base + FH * 0.42, c.center[1]], size: [10, FH * 0.84, 8], angle });
+      add(level + c.half, segment(c.door, c.center, base, 1.6));
+    }
+  }
+
+  // Car parks, entrances and outside paths from the map, on their own floors.
+  for (const s of map.spots) {
+    if (s.type === "parking") add(spotLevel(s), { center: [s.pos[0], spotLevel(s) * FH - 0.2, s.pos[1]], size: [20, 0.4, 16] });
+  }
+  for (const l of map.links) {
+    const [a, b] = [getSpot(l.from)!, getSpot(l.to)!];
+    if (l.from < l.to && spotLevel(a) === spotLevel(b) && (a.type === "parking" || a.type === "entrance" || b.type === "parking" || b.type === "entrance")) {
+      add(spotLevel(a), segment(a.pos, b.pos, spotLevel(a) * FH, 4));
+    }
+  }
+
+  return [...boxes].map(([level, list]) => {
+    const fills: THREE.BufferGeometry[] = [];
+    const edges: THREE.BufferGeometry[] = [];
+    for (const b of list) {
+      const geo = new THREE.BoxGeometry(...b.size);
+      const m = new THREE.Matrix4().compose(
+        new THREE.Vector3(...b.center),
+        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -(b.angle ?? 0)),
+        new THREE.Vector3(1, 1, 1),
+      );
+      edges.push(new THREE.EdgesGeometry(geo).applyMatrix4(m));
+      fills.push(geo.applyMatrix4(m));
+    }
+    const isFloor = Number.isInteger(level);
+    return {
+      level,
+      fillGeometry: mergeGeometries(fills)!,
+      edgeGeometry: mergeGeometries(edges)!,
+      fill: new THREE.MeshStandardMaterial({
+        color: isFloor ? "#13283d" : "#182c45",
+        emissive: isFloor ? "#06202c" : "#0d1838",
+        transparent: true,
+        opacity: 0.2,
+        depthWrite: false,
+      }),
+      edge: new THREE.LineBasicMaterial({ color: isFloor ? GLOW : "#7f9cff", transparent: true, opacity: 0.2 }),
+      color: new THREE.Color(isFloor ? GLOW : "#7f9cff"),
+    };
+  });
+}
+
+/** A flat walkway between two map points, `width` wide, lying at height y. */
+function segment(a: [number, number], b: [number, number], y: number, width: number): Box {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  return {
+    center: [(a[0] + b[0]) / 2, y - 0.2, (a[1] + b[1]) / 2],
+    size: [len + width * 0.6, 0.4, width],
+    angle: Math.atan2(b[1] - a[1], b[0] - a[0]),
+  };
+}
+
+type RouteTube = { core: THREE.BufferGeometry; glow: THREE.BufferGeometry };
+
+function routeTubes(steps: Step[], stepIndex: number) {
+  const tube = (list: Step[]): RouteTube | null => {
+    const curve = new THREE.CurvePath<THREE.Vector3>();
+    for (const s of list) {
+      const [a, b] = [toWorld(getSpot(s.from)!), toWorld(getSpot(s.to)!)];
+      if (a.distanceTo(b) > 0.01) curve.add(new THREE.LineCurve3(a.setY(a.y + 0.9), b.setY(b.y + 0.9)));
+    }
+    if (curve.curves.length === 0) return null;
+    const segments = curve.curves.length * 24;
+    return { core: new THREE.TubeGeometry(curve, segments, 0.45, 8, false), glow: new THREE.TubeGeometry(curve, segments, 1.5, 10, false) };
+  };
+  return {
+    done: tube(steps.slice(0, stepIndex)),
+    now: tube([steps[stepIndex]]),
+    ahead: tube(steps.slice(stepIndex + 1)),
+  };
+}
+
+function toWorld(spot: Spot): THREE.Vector3 {
+  return new THREE.Vector3(spot.pos[0], spotLevel(spot) * FH, spot.pos[1]);
+}
+
+function initialHeading(steps: Step[]): number {
+  for (const step of steps) {
+    const a = getSpot(step.from);
+    const b = getSpot(step.to);
+    if (a && b && (a.pos[0] !== b.pos[0] || a.pos[1] !== b.pos[1])) {
+      return Math.atan2(b.pos[1] - a.pos[1], b.pos[0] - a.pos[0]);
+    }
+  }
+  return -Math.PI / 2;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+function lerpAngle(a: number, b: number, t: number) {
+  const d = ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+  return a + d * t;
+}

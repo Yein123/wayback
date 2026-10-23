@@ -2,7 +2,8 @@
 // Pure functions over a DormMap (tested in tests/route.test.ts).
 import { map as dormMap, type Diagram, type DormMap, type Link } from "@/lib/map";
 
-export type Step = { text: string; diagram: Diagram };
+/** One instruction, walking from spot `from` to spot `to` (the same spot for the arrival step). */
+export type Step = { text: string; diagram: Diagram; from: string; to: string };
 
 /** "f6 26", "F626", "f6-26" → "F6-26". */
 export function normalizeRoom(input: string): string {
@@ -53,9 +54,9 @@ export function shortestPath(fromId: string, toId: string, map: DormMap = dormMa
   return path;
 }
 
-/** One step per link, plus a final "you've arrived" step. */
-export function toSteps(path: Link[], arrival: { target: "car" | "room"; label: string }): Step[] {
-  const steps = path.map((link) => ({ text: link.instruction, diagram: link.diagram }));
+/** One step per link, plus a final "you've arrived" step at `end`. */
+export function toSteps(path: Link[], arrival: { target: "car" | "room"; label: string }, end: string): Step[] {
+  const steps = path.map((link) => ({ text: link.instruction, diagram: link.diagram, from: link.from, to: link.to }));
   const text = arrival.target === "car" ? `Your car is here: ${arrival.label}` : `You've arrived: ${arrival.label}`;
-  return [...steps, { text, diagram: { kind: "arrive", ...arrival } }];
+  return [...steps, { text, diagram: { kind: "arrive", ...arrival }, from: end, to: end }];
 }

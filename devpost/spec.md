@@ -59,6 +59,7 @@ Phone browser (Next.js app on Vercel)
 | Image AI | **Transformers.js v4** (`@huggingface/transformers`) with the CLIP model `Xenova/clip-vit-base-patch32` (quantized vision model, ~89 MB, run on WASM in a Web Worker) | Free, runs in the browser, and produces the same numbers in Node for the setup script. |
 | Sign reading | **Tesseract.js** | Free in-browser OCR. |
 | Route | Hand-written Dijkstra in TypeScript | Small map. No library needed. |
+| 3D building view | **three.js** + **@react-three/fiber** (no drei) | Learner asked for a game-like, immersive view of the whole building that dives into the route; CSS can't give real depth, walls, lighting or a free camera. Kept to plain shapes, no textures, so it stays light next to CLIP on the phone. |
 | Hosting | **Vercel** (Hobby, free) | A real `https://` link the phone can open in the car park. |
 | Tests | **Vitest** for the route planner and score-combining logic only | These are pure functions and easy to check. |
 
@@ -73,6 +74,7 @@ Docs:
 - [Tesseract.js](https://github.com/naptha/tesseract.js)
 - [Vercel + Next.js](https://vercel.com/docs/frameworks/nextjs)
 - [Vitest](https://vitest.dev)
+- [three.js](https://threejs.org/docs) / [react-three-fiber](https://r3f.docs.pmnd.rs)
 
 **Verify early in the build (not yet checked):**
 - the current stable versions of Next.js, the Firebase SDK, Transformers.js and Tesseract.js
@@ -110,7 +112,8 @@ From `prd.md > Look and Feel`: a futuristic AR/game HUD, inspired by AR games li
 - **Glow:** Tailwind custom `boxShadow` like `0 0 16px rgba(62,230,242,.45)`. Highlighted diagram parts use an SVG `filter` blur glow and a slow pulse.
 - **Type:** **Orbitron** for headings, labels like "B1 · ZONE C" and step numbers. **Inter** for body text. Both load via `next/font/google`.
 - **Shape and energy:** rounded panels (16px), a HUD-style corner bracket on cards, a big round Capture button, and short "quest-like" copy ("Spot locked.", "Next waypoint").
-- **Diagrams:** flat 2D SVG with a slight tilt, thin glowing lines on dark, game-like. No 3D engine.
+- **Diagrams:** flat 2D SVG with a slight tilt, thin glowing lines on dark, game-like.
+- **Building view:** the whole block in real 3D (three.js) in the same palette: dark translucent floors, glowing cyan route, violet for the part already walked, fog for depth. It opens on the whole tower, then dives into your floor and follows you.
 - **Avoid:** white backgrounds and generic card-grid dashboards.
 
 ## Components
@@ -147,7 +150,8 @@ PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Fixing a Wrong Locatio
 PRD ref: `prd.md > Guiding to a Room`, `prd.md > States and Boundaries`.
 
 #### Directions Screen (`app/directions/page.tsx`)
-- One step at a time: a Step Diagram, one instruction line, "Step 2 / 6", **Next** and **Help**.
+- A large immersive **building view** on top: 3D (whole tower → dive into your floor → camera follows the route) with a 2D toggle showing the full plan of the current floor. Steps without map positions fall back to the Step Diagram.
+- One step at a time below it: one instruction line, the step's reference photo, "Step 2 / 6", **Next**, **Play** and **Help**.
 - The last step shows **Arrived**. For a room trip it shows **Done** and goes Home. For a car trip, Arrived ends the parking.
 
 PRD ref: `prd.md > Guiding to a Room`, `prd.md > Finding the Car`, `prd.md > Help While Walking`.
@@ -369,6 +373,8 @@ wayback/
 │   ├── GuessCard.tsx         # labelled reference-photo guess
 │   ├── SpotListPicker.tsx    # last-resort list grouped by floor
 │   ├── StepDiagram.tsx       # SVG templates: lifts, turn, lift-ride, door, walk, arrive
+│   ├── Building3D.tsx        # three.js whole-building view, dive-in and follow camera
+│   ├── RouteSim.tsx          # 2D floor plan view with the route
 │   └── HudPanel.tsx          # shared glowing panel frame
 ├── lib/
 │   ├── firebase.ts           # init, anonymous auth, Firestore + offline cache
@@ -379,6 +385,7 @@ wayback/
 │   ├── scoring.ts            # cosine similarity + sign bonus (pure, tested)
 │   ├── route.ts              # Route Planner (Dijkstra, steps; pure, tested)
 │   ├── map.ts                # loads dorm-map.json, spot lookups
+│   ├── building.ts           # every floor generated from the layout rules (pure, tested)
 │   ├── image.ts              # resize photo, make thumbnail
 │   ├── gps.ts                # GPS Stamp
 │   └── trip.ts               # Trip State store (useSyncExternalStore) + sessionStorage
@@ -394,6 +401,7 @@ wayback/
 │   └── check-match.mjs       # altered-photo match check (npm run check:match)
 ├── tests/
 │   ├── route.test.ts
+│   ├── building.test.ts
 │   └── scoring.test.ts
 ├── firestore.rules
 ├── .env.local.example        # NEXT_PUBLIC_FIREBASE_* names, no values

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { map } from "@/lib/map";
+import { getSpot, map } from "@/lib/map";
 import { findRoom, normalizeRoom, shortestPath, toSteps } from "@/lib/route";
 
 const spotsOn = (from: string, to: string) => {
@@ -76,15 +76,29 @@ describe("shortestPath", () => {
   });
 });
 
+describe("map positions", () => {
+  it("gives every spot a position and every link a real distance or a floor change", () => {
+    for (const s of map.spots) expect(s.pos).toHaveLength(2);
+    for (const l of map.links) {
+      const a = getSpot(l.from)!;
+      const b = getSpot(l.to)!;
+      expect(a.pos.join() !== b.pos.join() || a.floor !== b.floor).toBe(true);
+    }
+  });
+});
+
 describe("toSteps", () => {
   it("makes one step per link plus an arrival step", () => {
     const path = shortestPath("cp-se", "room-f6-26")!;
-    const steps = toSteps(path, { target: "room", label: "Room F6-26" });
+    const steps = toSteps(path, { target: "room", label: "Room F6-26" }, "room-f6-26");
     expect(steps).toHaveLength(path.length + 1);
     expect(steps[3].text).toBe("Take any lift up to Floor 5");
+    expect(steps[3]).toMatchObject({ from: "lobby-1", to: "lobby-5" });
     expect(steps.at(-1)).toEqual({
       text: "You've arrived: Room F6-26",
       diagram: { kind: "arrive", target: "room", label: "Room F6-26" },
+      from: "room-f6-26",
+      to: "room-f6-26",
     });
   });
 });
