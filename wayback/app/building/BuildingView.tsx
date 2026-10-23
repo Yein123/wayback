@@ -1,11 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import CaptureButton from "@/components/CaptureButton";
 import HudPanel from "@/components/HudPanel";
-import { addFloor, getBuilding, type Building, type Floor } from "@/lib/buildings";
+import OutlineEditor from "@/components/OutlineEditor";
+import { addFloor, getBuilding, saveFloorShape, type Building, type Floor } from "@/lib/buildings";
+
+// three.js only downloads when the 3D view opens, and never runs on the server.
+const BuildingModel3D = dynamic(() => import("@/components/BuildingModel3D"), {
+  ssr: false,
+  loading: () => <p className="p-6 font-hud text-xs tracking-widest text-muted">LOADING 3D…</p>,
+});
 
 type Loaded = { building: Building; floors: Floor[]; mine: boolean };
 
@@ -17,6 +25,8 @@ export default function BuildingView() {
   const [label, setLabel] = useState("");
   const [plan, setPlan] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [show3d, setShow3d] = useState(false);
 
   const load = useCallback(() => {
     getBuilding(id)
@@ -59,12 +69,51 @@ export default function BuildingView() {
         <>
           <h1 className="font-hud text-xl font-bold tracking-wider text-glow">{data.building.name.toUpperCase()}</h1>
 
+          {data.floors.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShow3d(!show3d)}
+              className="rounded-2xl border border-glow bg-glow/15 py-3 font-hud text-sm tracking-[0.3em] text-glow shadow-glow"
+            >
+              {show3d ? "HIDE 3D" : "VIEW IN 3D"}
+            </button>
+          )}
+          {show3d && (
+            <div className="relative -mx-4 h-[56dvh] min-h-80 overflow-hidden border-y border-edge bg-void">
+              <BuildingModel3D floors={data.floors} />
+              <p className="pointer-events-none absolute bottom-2 left-3 font-hud text-[10px] tracking-[0.2em] text-muted">
+                DRAG TO SPIN · PINCH OR SCROLL TO ZOOM
+              </p>
+            </div>
+          )}
+
           {data.floors.length === 0 && <p className="text-sm text-muted">No floors yet. Add the lowest floor first.</p>}
           {data.floors.map((f) => (
             <HudPanel key={f.id} className="flex flex-col gap-2">
-              <h2 className="font-hud text-xs tracking-[0.2em] text-muted">FLOOR {f.label.toUpperCase()}</h2>
-              {/* eslint-disable-next-line @next/next/no-img-element -- stored data URL plan */}
-              <img src={f.image} alt={`Floor ${f.label} plan`} className="w-full rounded-xl border border-edge bg-white object-contain" />
+              <div className="flex items-center justify-between">
+                <h2 className="font-hud text-xs tracking-[0.2em] text-muted">
+                  FLOOR {f.label.toUpperCase()}
+                  {f.outlines.length > 0 && ` · ${f.outlines.length} SHAPES`}
+                </h2>
+                {data.mine && editing !== f.id && (
+                  <button type="button" onClick={() => setEditing(f.id)} className="font-hud text-[10px] tracking-widest text-glow">
+                    DRAW OUTLINES ›
+                  </button>
+                )}
+              </div>
+              {editing === f.id ? (
+                <OutlineEditor
+                  floor={f}
+                  onSave={async (shape) => {
+                    await saveFloorShape(id, f.id, shape);
+                    load();
+                  }}
+                  onClose={() => setEditing(null)}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element -- stored data URL plan
+                <img src={f.image} alt={`Floor ${f.label} plan`} className="w-full rounded-xl border border-edge bg-white object-contain" />
+              )}
             </HudPanel>
           ))}
 

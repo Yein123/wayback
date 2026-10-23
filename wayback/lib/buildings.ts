@@ -1,12 +1,25 @@
 // Building Store: any building's floors and their plan images, saved under the person who added them.
 // buildings/{id} = { name, owner, createdAt }; buildings/{id}/floors/{floorId} = { label, order, image, width, height }.
-import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp, Timestamp, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp, Timestamp, updateDoc, where } from "firebase/firestore";
 import { firebase } from "@/lib/firebase";
+import { flatten, unflatten, type Outline, type OutlineKind, type Point } from "@/lib/outline";
 
 export type Building = { id: string; name: string; owner: string; createdAt: Date | null };
-export type Floor = { id: string; label: string; order: number; image: string; width: number; height: number };
+export type Floor = {
+  id: string;
+  label: string;
+  order: number;
+  image: string;
+  width: number;
+  height: number;
+  /** Set with two points on the plan and the real distance between them; null until then. */
+  metresPerPixel: number | null;
+  /** The two points the scale was measured between, to show it again. */
+  scaleLine: [Point, Point] | null;
+  outlines: Outline[];
+};
 
-const MAX_RECORD = 900_000; // a Firestore record must stay under 1 MB
+const MAX_RECORD = 800_000; // a Firestore record must stay under 1 MB, with room left for outlines
 
 export async function createBuilding(name: string): Promise<string> {
   const { db, user } = await firebase();
@@ -44,7 +57,18 @@ export async function getBuilding(id: string): Promise<{ building: Building; flo
     mine: building.owner === user.uid,
     floors: floors.docs.map((d) => {
       const f = d.data();
-      return { id: d.id, label: String(f.label), order: Number(f.order), image: String(f.image), width: Number(f.width), height: Number(f.height) };
+      const line = (f.scaleLine as number[] | undefined) ?? null;
+      return {
+        id: d.id,
+        label: String(f.label),
+        order: Number(f.order),
+        image: String(f.image),
+        width: Number(f.width),
+        height: Number(f.height),
+        metresPerPixel: typeof f.metresPerPixel === "number" ? f.metresPerPixel : null,
+        scaleLine: line && line.length === 4 ? (unflatten(line) as [Point, Point]) : null,
+        outlines: ((f.outlines as { kind: OutlineKind; points: number[] }[] | undefined) ?? []).map((o) => ({ kind: o.kind, points: unflatten(o.points) })),
+      };
     }),
   };
 }
@@ -68,4 +92,18 @@ async function shrink(file: Blob, maxSide: number, quality: number): Promise<{ i
   ctx.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
   return { image: canvas.toDataURL("image/jpeg", quality), width, height };
+}
+
+/** Saves a floor's scale and outlines (drawn over its plan). */
+export async function saveFloorShape(
+  buildingId: string,
+  floorId: string,
+  shape: { metresPerPixel: number | null; scaleLine: [Point, Point] | null; outlines: Outline[] },
+): Promise<void> {
+  const { db } = await firebase();
+  await updateDoc(doc(db, "buildings", buildingId, "floors", floorId), {
+    metresPerPixel: shape.metresPerPixel,
+    scaleLine: shape.scaleLine ? flatten(shape.scaleLine) : null,
+    outlines: shape.outlines.map((o) => ({ kind: o.kind, points: flatten(o.points) })),
+  });
 }
