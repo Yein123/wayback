@@ -131,6 +131,8 @@ Source: `scope.md > The Core Loop` step 3, `scope.md > The POC Boundary` (way ba
 ## Possible Later Enhancements
 From `scope.md > Later`: paid vision AI if free matching isn't accurate enough, AI-built maps from floor plans, friendly landmark-based directions, phone-sensor tracking, a shared anonymous map that grows from many users' walks, and more building types. New ideas from this interview: real AR arrows over the camera, and live position following.
 
+**Product vision (learner, during the build): Wayback for any building.** Anyone can upload a building's 2D diagram (a mall, a theme park, a campus), set its scale, and draw the walkable paths, lifts, stairs and entrances on it. Surveyors then walk the site with Survey mode, pinning spots with GPS, four-side photos and notes. The app builds its photo-matching data and a 3D view from that, and visitors navigate it the same way M06 works today. Already proved in the POC: survey capture, GPS anchoring, free on-device photo matching, shortest routes and the 3D view. Still needed: a diagram upload and map editor, per-building data in the cloud instead of in the app's files, matching data built straight from surveys, and 3D extruded from drawn outlines. Outdoor sites like theme parks would lean more on GPS; indoor malls on photos and floor confirmation, like M06.
+
 ## Non-Goals
 - **No GPS-based indoor guidance:** it doesn't work reliably indoors (`scope.md > Explicitly Cut`).
 - **No Wi-Fi/Bluetooth beacons or QR stickers:** these need equipment in the building.
