@@ -16,6 +16,9 @@ const GREY = new THREE.Color("#3A4656");
 const INTRO_MS = 2600; // circle the whole tower
 const DIVE_MS = 2200; // then fly down to you
 
+/** How far you've turned, tilted and zoomed the camera by hand. */
+type Look = { yaw: number; pitch: number; zoom: number; touchedAt: number };
+
 type Walk = { start: THREE.Vector3; end: THREE.Vector3; t0: number; dur: number; h0: number; h1: number; index: number; done: boolean };
 
 /**
@@ -32,26 +35,103 @@ export default function Building3D({
   onWalked: (index: number) => void;
 }) {
   const [level, setLevel] = useState(() => spotLevel(getSpot(steps[stepIndex].from)!));
+  const [spotId, setSpotId] = useState(steps[stepIndex].from);
+  const tag = useRef<HTMLDivElement>(null);
   const [overview, setOverview] = useState(false);
+  const [turned, setTurned] = useState(false);
+  const look = useRef<Look>({ yaw: 0, pitch: 0, zoom: 1, touchedAt: -Infinity });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const box = useRef<HTMLDivElement>(null);
+
+  // Scroll wheel zooms the camera instead of scrolling the page (needs a non-passive listener).
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      look.current.zoom = clamp(look.current.zoom * Math.exp(e.deltaY * 0.001), 0.4, 2.5);
+      look.current.touchedAt = performance.now();
+      setTurned(true);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  function onPointerMove(e: React.PointerEvent) {
+    const prev = pointers.current.get(e.pointerId);
+    if (!prev) return;
+    const l = look.current;
+    if (pointers.current.size === 1) {
+      // one finger / mouse drag: spin around and tilt
+      l.yaw += (e.clientX - prev.x) * 0.008;
+      l.pitch = clamp(l.pitch + (e.clientY - prev.y) * 0.005, -0.6, 0.6);
+    } else {
+      // two fingers: pinch to zoom
+      const other = [...pointers.current].find(([id]) => id !== e.pointerId)![1];
+      const before = Math.hypot(prev.x - other.x, prev.y - other.y);
+      const after = Math.hypot(e.clientX - other.x, e.clientY - other.y);
+      if (before > 0) l.zoom = clamp(l.zoom * (before / after), 0.4, 2.5);
+    }
+    l.touchedAt = performance.now();
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!turned) setTurned(true);
+  }
+
+  function placeTag(x: number, y: number, show: boolean) {
+    const el = tag.current;
+    if (!el) return;
+    el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+    el.style.opacity = show ? "1" : "0";
+  }
+
+  function recenter() {
+    look.current = { yaw: 0, pitch: 0, zoom: 1, touchedAt: -Infinity };
+    setTurned(false);
+  }
 
   return (
-    <div className="relative h-full w-full">
+    <div
+      ref={box}
+      className="relative h-full w-full touch-none select-none"
+      onPointerDown={(e) => {
+        pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+      }}
+      onPointerMove={onPointerMove}
+      onPointerUp={(e) => pointers.current.delete(e.pointerId)}
+      onPointerCancel={(e) => pointers.current.delete(e.pointerId)}
+    >
       <Canvas
         dpr={[1, 2]}
         camera={{ fov: 50, near: 0.5, far: 900, position: [170, 120, 170] }}
         gl={{ antialias: true }}
         fallback={<p className="p-6 text-sm text-muted">This phone can&apos;t draw 3D. Switch to 2D.</p>}
       >
-        <Scene steps={steps} stepIndex={stepIndex} onWalked={onWalked} overview={overview} onLevel={setLevel} />
+        <Scene steps={steps} stepIndex={stepIndex} onWalked={onWalked} overview={overview} onLevel={setLevel} onSpot={setSpotId} onTag={placeTag} look={look} />
       </Canvas>
 
-      <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-edge bg-panel/80 px-2.5 py-1 font-hud text-xs tracking-widest text-glow">
-        {overview ? "M06 · ALL FLOORS" : levelName(Math.round(level))}
+      <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-10rem)] truncate rounded-lg border border-edge bg-panel/80 px-2.5 py-1 font-hud text-xs tracking-widest text-glow">
+        {overview ? "M06 · ALL FLOORS" : `${levelName(Math.round(level))} · ${placeName(spotId)}`}
       </div>
+      {/* follows your marker on screen (positioned every frame by the scene) */}
+      <div ref={tag} className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-md border border-glow/60 bg-void/80 px-1.5 py-0.5 font-hud text-[9px] tracking-[0.2em] text-glow shadow-glow">
+        YOU
+      </div>
+      {turned && (
+        <button
+          type="button"
+          onClick={recenter}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute left-3 top-12 rounded-lg border border-edge bg-panel/80 px-2.5 py-1 font-hud text-[10px] tracking-widest text-muted"
+        >
+          ⟲ RECENTER
+        </button>
+      )}
       <button
         type="button"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={() => setOverview(!overview)}
-        className={`absolute bottom-3 right-3 rounded-lg border px-2.5 py-1 font-hud text-[10px] tracking-widest ${overview ? "border-glow/60 bg-glow/20 text-glow" : "border-edge bg-panel/80 text-muted"}`}
+        className={`absolute right-3 top-12 rounded-lg border px-2.5 py-1 font-hud text-[10px] tracking-widest ${overview ? "border-glow/60 bg-glow/20 text-glow" : "border-edge bg-panel/80 text-muted"}`}
       >
         {overview ? "DIVE IN" : "OVERVIEW"}
       </button>
@@ -65,12 +145,18 @@ function Scene({
   onWalked,
   overview,
   onLevel,
+  onSpot,
+  onTag,
+  look,
 }: {
   steps: Step[];
   stepIndex: number;
   onWalked: (index: number) => void;
   overview: boolean;
   onLevel: (level: number) => void;
+  onSpot: (id: string) => void;
+  onTag: (x: number, y: number, show: boolean) => void;
+  look: React.RefObject<Look>;
 }) {
   const { camera } = useThree();
   const layers = useMemo(() => getLayers(), []);
@@ -84,15 +170,21 @@ function Scene({
   const shown = useRef(spotLevel(getSpot(steps[stepIndex].from)!));
   const walkedRef = useRef(onWalked);
   const levelRef = useRef(onLevel);
+  const spotRef = useRef(onSpot);
+  const tagRef = useRef(onTag);
+  const shownSpot = useRef(steps[stepIndex].from);
   const still = useRef(false);
   const mounted = useRef(0);
   // The camera's "flying out" amount: 1 = whole tower, 0 = following you.
   const out = useRef(1);
   const lookAt = useRef(towerCenter.clone());
+  const spin = useRef(0);
 
   useEffect(() => {
     walkedRef.current = onWalked;
     levelRef.current = onLevel;
+    spotRef.current = onSpot;
+    tagRef.current = onTag;
   });
 
   useEffect(() => {
@@ -153,6 +245,15 @@ function Scene({
       you.current.rotation.y = -heading.current;
     }
 
+    // where you are: the step's start until its walk finishes, then its end
+    const at = w ? (w.done ? steps[w.index].to : steps[w.index].from) : steps[stepIndex].from;
+    if (at !== shownSpot.current) {
+      shownSpot.current = at;
+      spotRef.current(at);
+    }
+    const v = p.clone().add(new THREE.Vector3(0, 5, 0)).project(camera);
+    tagRef.current(((v.x + 1) / 2) * state.size.width, ((1 - v.y) / 2) * state.size.height, v.z < 1);
+
     // which floor is lit
     const here = Math.round((p.y / FH) * 2) / 2;
     if (here !== shown.current) {
@@ -182,11 +283,14 @@ function Scene({
     if (diving) out.current = 1 - ease((sinceOpen - INTRO_MS) / DIVE_MS);
     else out.current += (wantOut - out.current) * (1 - Math.exp(-dt * 2.5));
 
+    const l = look.current;
     const fwd = new THREE.Vector3(Math.cos(heading.current), 0, Math.sin(heading.current));
-    const followPos = p.clone().addScaledVector(fwd, -24).add(new THREE.Vector3(0, 30, 0));
-    const followLook = p.clone().addScaledVector(fwd, 10);
-    const orbit = state.clock.elapsedTime * 0.25;
-    const overPos = new THREE.Vector3(Math.cos(orbit) * 175, towerCenter.y + 95, Math.sin(orbit) * 175);
+    // Behind you by default; dragging swings the camera around you.
+    const followPos = p.clone().add(around(heading.current + Math.PI + l.yaw, 0.9 + l.pitch, 38 * l.zoom));
+    const followLook = p.clone().addScaledVector(fwd, l.yaw === 0 ? 10 : 0);
+    // The overview spins slowly on its own until you grab it.
+    if (now - l.touchedAt > 3000) spin.current += dt * 0.25;
+    const overPos = towerCenter.clone().add(around(spin.current + l.yaw, 0.5 + l.pitch, 200 * l.zoom));
 
     const o = out.current;
     const targetPos = followPos.lerp(overPos, o);
@@ -425,6 +529,21 @@ function routeTubes(steps: Step[], stepIndex: number) {
     now: tube([steps[stepIndex]]),
     ahead: tube(steps.slice(stepIndex + 1)),
   };
+}
+
+/** "SE Hallway · Stair 2 (up)" → "SE HALLWAY · STAIR 2"; the floor is shown separately. */
+function placeName(id: string): string {
+  const label = getSpot(id)?.label ?? "";
+  return label
+    .replace(/s*((up|down))/, "")
+    .replace(/^(Floor d+|Bd) · /, "")
+    .replace(/ · (Floor d+|Bd)$/, "")
+    .toUpperCase();
+}
+
+/** A point on a sphere: `angle` around (map heading), `pitch` up from level, `dist` away. */
+function around(angle: number, pitch: number, dist: number): THREE.Vector3 {
+  return new THREE.Vector3(Math.cos(angle) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, Math.sin(angle) * Math.cos(pitch) * dist);
 }
 
 function toWorld(spot: Spot): THREE.Vector3 {

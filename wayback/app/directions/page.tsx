@@ -7,9 +7,9 @@ import { useEffect, useState } from "react";
 import HudPanel from "@/components/HudPanel";
 import RouteSim, { type SimView } from "@/components/RouteSim";
 import StepDiagram from "@/components/StepDiagram";
-import { map } from "@/lib/map";
-import type { Step } from "@/lib/route";
-import { endTrip, setStepIndex, useTrip } from "@/lib/trip";
+import { getSpot, map } from "@/lib/map";
+import { shortestPath, toSteps, type Step } from "@/lib/route";
+import { endTrip, setStepIndex, startTrip, useTrip } from "@/lib/trip";
 import referencePhotos from "@/public/data/reference-photos.json";
 
 // three.js only downloads on this screen, and never runs on the server.
@@ -24,6 +24,16 @@ export default function DirectionsPage() {
   const [view, setView] = useState<SimView>("3d");
   const [playing, setPlaying] = useState(false);
   const [walked, setWalked] = useState(-1);
+  const [full, setFull] = useState(false);
+
+  // Leaving the phone's real full screen (back gesture, Esc) also leaves ours.
+  useEffect(() => {
+    const sync = () => {
+      if (!document.fullscreenElement) setFull(false);
+    };
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
 
   // Play: once the simulated walk of a step finishes, pause a beat and move on to the next one.
   useEffect(() => {
@@ -59,10 +69,88 @@ export default function DirectionsPage() {
     setStepIndex(index);
   }
 
+  function toggleFull() {
+    const next = !full;
+    setFull(next);
+    // Real full screen hides the browser bars where it's supported (not iPhone Safari); the layout works without it.
+    if (next) document.documentElement.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+
   function finish() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     endTrip();
     router.push("/");
   }
+
+  // The way back: from wherever you are on this route to the car park the trip started from.
+  const here = walked >= stepIndex ? step.to : step.from;
+  function backToCar() {
+    const carPark = trip!.from;
+    const path = shortestPath(here, carPark);
+    if (!path) return;
+    setPlaying(false);
+    setWalked(-1);
+    startTrip({
+      mode: "toCar",
+      from: here,
+      to: carPark,
+      steps: toSteps(path, { target: "car", label: getSpot(carPark)!.label }, carPark),
+    });
+  }
+
+  const carButton = trip.mode === "toRoom" && canSim && here !== trip.from && (
+    <button
+      type="button"
+      onClick={backToCar}
+      className="rounded-lg border border-violet/60 bg-violet/10 px-2.5 py-1 font-hud text-[10px] tracking-widest text-violet active:scale-[0.98]"
+    >
+      ↩ CAR PARK
+    </button>
+  );
+
+  const progress =`${isLast ? "ARRIVED" : `≈ ${minutesLeft} MIN LEFT`} · STEP ${stepIndex + 1}/${steps.length}`;
+
+  const controls = (
+    <div className="mt-auto flex gap-3">
+      {stepIndex > 0 && (
+        <button
+          type="button"
+          onClick={() => go(stepIndex - 1)}
+          className="rounded-2xl border border-edge px-5 py-4 font-hud text-sm tracking-widest text-muted active:scale-[0.98]"
+        >
+          BACK
+        </button>
+      )}
+      {canSim && !isLast && (
+        <button
+          type="button"
+          onClick={() => setPlaying(!playing)}
+          aria-label={playing ? "Pause the simulation" : "Play the whole route"}
+          className="rounded-2xl border border-violet/60 px-5 py-4 font-hud text-sm tracking-widest text-violet active:scale-[0.98]"
+        >
+          {playing ? "❚❚" : "▶"}
+        </button>
+      )}
+      {isLast ? (
+        <button
+          type="button"
+          onClick={finish}
+          className="flex-1 rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
+        >
+          {trip.mode === "toCar" ? "ARRIVED" : "DONE"}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => go(stepIndex + 1)}
+          className="flex-1 rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
+        >
+          NEXT ›
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <main className="flex flex-1 flex-col gap-4">
@@ -73,10 +161,17 @@ export default function DirectionsPage() {
         <span className="font-hud text-xs tracking-[0.2em] text-glow">
           {trip.mode === "toCar" ? "TO YOUR CAR" : "TO YOUR ROOM"}
         </span>
+        {carButton}
       </header>
 
       {canSim ? (
-        <div className="relative -mx-4 h-[56dvh] min-h-80 overflow-hidden border-y border-edge bg-void">
+        <div
+          className={
+            full
+              ? "fixed inset-0 z-50 h-dvh overflow-hidden bg-void"
+              : "relative -mx-4 h-[56dvh] min-h-80 overflow-hidden border-y border-edge bg-void"
+          }
+        >
           {view === "3d" ? (
             <Building3D steps={steps} stepIndex={stepIndex} onWalked={setWalked} />
           ) : (
@@ -93,10 +188,27 @@ export default function DirectionsPage() {
                 {v.toUpperCase()}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={toggleFull}
+              aria-label={full ? "Leave full screen" : "Full screen"}
+              className={`border-l border-edge px-2.5 py-1 ${full ? "bg-glow/20 text-glow" : "text-muted"}`}
+            >
+              {full ? "✕" : "⛶"}
+            </button>
           </div>
-          <p className="pointer-events-none absolute bottom-2 left-3 font-hud text-[10px] tracking-[0.2em] text-muted">
-            {isLast ? "ARRIVED" : `≈ ${minutesLeft} MIN LEFT`} · STEP {stepIndex + 1}/{steps.length}
-          </p>
+          {full ? (
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 bg-gradient-to-t from-void via-void/90 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10">
+              <div className="flex items-center justify-between">
+                <p className="font-hud text-[10px] tracking-[0.2em] text-muted">{progress}</p>
+                {carButton}
+              </div>
+              <p className="text-lg leading-snug text-ink">{step.text}</p>
+              {controls}
+            </div>
+          ) : (
+            <p className="pointer-events-none absolute bottom-2 left-3 font-hud text-[10px] tracking-[0.2em] text-muted">{progress}</p>
+          )}
         </div>
       ) : (
         <div className="flex items-center gap-1.5">
@@ -122,44 +234,7 @@ export default function DirectionsPage() {
         )}
       </HudPanel>
 
-      <div className="mt-auto flex gap-3">
-        {stepIndex > 0 && (
-          <button
-            type="button"
-            onClick={() => go(stepIndex - 1)}
-            className="rounded-2xl border border-edge px-5 py-4 font-hud text-sm tracking-widest text-muted active:scale-[0.98]"
-          >
-            BACK
-          </button>
-        )}
-        {canSim && !isLast && (
-          <button
-            type="button"
-            onClick={() => setPlaying(!playing)}
-            aria-label={playing ? "Pause the simulation" : "Play the whole route"}
-            className="rounded-2xl border border-violet/60 px-5 py-4 font-hud text-sm tracking-widest text-violet active:scale-[0.98]"
-          >
-            {playing ? "❚❚" : "▶"}
-          </button>
-        )}
-        {isLast ? (
-          <button
-            type="button"
-            onClick={finish}
-            className="flex-1 rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
-          >
-            {trip.mode === "toCar" ? "ARRIVED" : "DONE"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => go(stepIndex + 1)}
-            className="flex-1 rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
-          >
-            NEXT ›
-          </button>
-        )}
-      </div>
+      {!full && controls}
     </main>
   );
 }
