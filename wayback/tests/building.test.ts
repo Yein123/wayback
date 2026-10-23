@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, hallwayPath, levelName } from "@/lib/building";
+import { CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, hallwayPath, levelName, type Cube } from "@/lib/building";
 import { getSpot, spotLevel } from "@/lib/map";
 
 describe("building", () => {
@@ -28,6 +28,20 @@ describe("building", () => {
     expect(near(getSpot("room-f6-26")!.pos, cubePoint(cube, 1.7, 3.85))).toBeLessThan(0.2);
     expect(spotLevel(spot)).toBe(floorLevel("5") + cube.half);
     expect(cube.door).toEqual(getSpot("se-stair-2")!.pos);
+  });
+
+  it("mirrors cubes across the hallway: stairs on your right walking into the demo cube, on your left opposite", () => {
+    // which side of "walking in" a plan point lands on: > 0 is your right (map y points south)
+    const sideOf = (c: Cube, x: number) => {
+      const [px, py] = cubePoint(c, x, 1);
+      const [fx, fy] = [c.center[0] - c.door[0], c.center[1] - c.door[1]];
+      return fx * (py - c.door[1]) - fy * (px - c.door[0]);
+    };
+    const demo = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "left")!;
+    const opposite = cubes().find((c) => c.hallway === "SE" && c.stair === 2 && c.side === "right")!;
+    const stairsX = 2.7;
+    expect(sideOf(demo, stairsX)).toBeGreaterThan(0);
+    expect(sideOf(opposite, stairsX)).toBeLessThan(0);
   });
 
   it("swaps the toilet and the stairs between the cube's two floors", () => {

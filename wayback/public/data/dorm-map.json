@@ -17,8 +17,8 @@
     { "id": "se-stair-2", "label": "SE Hallway · Stair 2 (up)", "floor": "5", "type": "hallway", "signText": ["F6-25", "F6-28", "F6-37", "F6-40"], "pos": [27,21] },
     { "id": "se-stair-3", "label": "SE Hallway · Stair 3 (up)", "floor": "5", "type": "hallway", "signText": ["F6-29", "F6-32", "F6-33", "F6-36"], "pos": [40,31] },
     { "id": "se-stair-4", "label": "SE Hallway · Stair 4 (down)", "floor": "5", "type": "hallway", "signText": ["F5-29", "F5-32", "F5-33", "F5-36"], "pos": [53,41] },
-    { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [], "pos": [33.1,11.7], "level": 4.5 },
-    { "id": "room-f6-26", "label": "Room F6-26", "floor": "6", "type": "room", "room": "F6-26", "pos": [34.4,8.6], "level": 4.5 }
+    { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [], "pos": [34.5,12.8], "level": 4.5 },
+    { "id": "room-f6-26", "label": "Room F6-26", "floor": "6", "type": "room", "room": "F6-26", "pos": [37.1,10.7], "level": 4.5 }
   ],
   "links": [
     { "from": "cp-se", "to": "entrance-se", "cost": 30, "instruction": "Walk to the SE entrance", "diagram": { "kind": "door", "label": "SE ENTRANCE" } },

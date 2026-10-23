@@ -74,16 +74,17 @@ export const CUBE_ENTRY_X = 0.9;
 
 /**
  * A point inside a cube, read off the learner's floor plan with the hallway along the top:
- * `x` is metres across the plan (− = the plan's left, which is your right as you walk in),
- * `d` is metres in from the hallway edge.
+ * `x` is metres across the plan (+ = the stairs side), `d` is metres in from the hallway edge.
+ * Cubes on opposite sides of a hallway are mirror images: walking in, the stairs are on your
+ * right in the cubes on the left of the hallway (like the demo cube F6-25 – 28), and on your left opposite.
  */
 export function cubePoint(c: Cube, x: number, d: number): [number, number] {
   const len = Math.hypot(c.center[0] - c.door[0], c.center[1] - c.door[1]);
   const f = [(c.center[0] - c.door[0]) / len, (c.center[1] - c.door[1]) / len]; // walking in
-  const yourLeft = [f[1], -f[0]];
+  const plus = c.side === "left" ? [-f[1], f[0]] : [f[1], -f[0]]; // your right : your left
   const nx = c.center[0] - f[0] * (CUBE.depth / 2);
   const ny = c.center[1] - f[1] * (CUBE.depth / 2);
-  return [nx + yourLeft[0] * x + f[0] * d, ny + yourLeft[1] * x + f[1] * d];
+  return [nx + plus[0] * x + f[0] * d, ny + plus[1] * x + f[1] * d];
 }
 
 export type CubePart = { kind: "room" | "toilet" | "stairs"; room?: number; x: [number, number]; d: [number, number] };
