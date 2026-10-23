@@ -13,12 +13,12 @@
     { "id": "lobby-1", "label": "Floor 1 · Lift Lobby", "floor": "1", "type": "lobby", "signText": [], "pos": [0,0] },
     { "id": "lobby-b2", "label": "B2 · Lift Lobby", "floor": "B2", "type": "lobby", "signText": [], "pos": [0,0] },
     { "id": "lobby-5", "label": "Floor 5 · Lift Lobby", "floor": "5", "type": "lobby", "signText": ["ARAS", "F6-25", "F6-40", "F6-09", "F6-24", "F6-01", "F6-08", "F6-41", "F6-48"], "pos": [0,0] },
-    { "id": "se-stair-1", "label": "SE Hallway · Stair 1 (down)", "floor": "5", "type": "hallway", "signText": ["F5-25", "F5-28", "F5-37", "F5-40"], "pos": [19.8,15.4] },
-    { "id": "se-stair-2", "label": "SE Hallway · Stair 2 (up)", "floor": "5", "type": "hallway", "signText": ["F6-25", "F6-28", "F6-37", "F6-40"], "pos": [21.3,16.5] },
-    { "id": "se-stair-3", "label": "SE Hallway · Stair 3 (up)", "floor": "5", "type": "hallway", "signText": ["F6-29", "F6-32", "F6-33", "F6-36"], "pos": [45.8,35.4] },
-    { "id": "se-stair-4", "label": "SE Hallway · Stair 4 (down)", "floor": "5", "type": "hallway", "signText": ["F5-29", "F5-32", "F5-33", "F5-36"], "pos": [47.2,36.5] },
-    { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [], "pos": [26.8,9.3], "level": 4.5 },
-    { "id": "room-f6-26", "label": "Room F6-26", "floor": "6", "type": "room", "room": "F6-26", "pos": [26.8,5.2], "level": 4.5 }
+    { "id": "se-stair-1", "label": "SE Hallway · Stair 1 (down)", "floor": "5", "type": "hallway", "signText": ["F5-25", "F5-28", "F5-37", "F5-40"], "pos": [15.2,11.8] },
+    { "id": "se-stair-2", "label": "SE Hallway · Stair 2 (up)", "floor": "5", "type": "hallway", "signText": ["F6-25", "F6-28", "F6-37", "F6-40"], "pos": [25.9,20.1] },
+    { "id": "se-stair-3", "label": "SE Hallway · Stair 3 (up)", "floor": "5", "type": "hallway", "signText": ["F6-29", "F6-32", "F6-33", "F6-36"], "pos": [41.1,31.8] },
+    { "id": "se-stair-4", "label": "SE Hallway · Stair 4 (down)", "floor": "5", "type": "hallway", "signText": ["F5-29", "F5-32", "F5-33", "F5-36"], "pos": [51.9,40.2] },
+    { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [], "pos": [31,13.5], "level": 4.5 },
+    { "id": "room-f6-26", "label": "Room F6-26", "floor": "6", "type": "room", "room": "F6-26", "pos": [26.7,4.4], "level": 4.5 }
   ],
   "links": [
     { "from": "cp-se", "to": "entrance-se", "cost": 30, "instruction": "Walk to the SE entrance", "diagram": { "kind": "door", "label": "SE ENTRANCE" } },

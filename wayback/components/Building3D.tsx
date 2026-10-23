@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { CUBE, CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube, type CubePart } from "@/lib/building";
+import { CUBE, CUBE_ENTRY_X, PLAN, PLAN_SCALE, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube, type CubePart } from "@/lib/building";
 import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
 import type { Step } from "@/lib/route";
 
@@ -575,20 +575,20 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
   const groups: Record<keyof CubeDetail["parts"], Box[]> = { slabs: [], rooms: [], target: [], toilet: [], stairs: [], upper: [] };
   const area = (x: [number, number], d: [number, number], y: number, h: number): Box => {
     const [cx, cz] = cubePoint(cube, (x[0] + x[1]) / 2, (d[0] + d[1]) / 2);
-    return { center: [cx, y + h / 2, cz], size: [x[1] - x[0], h, d[1] - d[0]], angle };
+    return { center: [cx, y + h / 2, cz], size: [(x[1] - x[0]) * PLAN_SCALE.x, h, (d[1] - d[0]) * PLAN_SCALE.d], angle };
   };
   for (const floor of [1, 2] as const) {
     const y = level * FH + (floor - 1) * storey;
     // Floor 2 is drawn faintly as one piece so the floor you walk in on reads clearly from above.
     const into = (key: keyof CubeDetail["parts"]) => (floor === 1 ? groups[key] : groups.upper);
-    into("slabs").push(area([-CUBE.width / 2, CUBE.width / 2], [0, CUBE.depth], y - 0.15, 0.15));
+    into("slabs").push(area([-PLAN.width / 2, PLAN.width / 2], [0, PLAN.depth], y - 0.15, 0.15));
     for (const part of cubePlan(floor)) {
       if (part.kind === "stairs") {
-        // floor 1: up toward the hallway side; floor 2: the top of the same flight
+        // One stair inside the cube: up from floor 1 toward the hallway side, arriving on floor 2.
+        if (floor === 2) continue;
         const mid = (part.x[0] + part.x[1]) / 2;
         const [a, b] = [cubePoint(cube, mid, part.d[1]), cubePoint(cube, mid, part.d[0])];
-        const flightBoxes = floor === 1 ? flight(a, b, y, storey / 2, part.x[1] - part.x[0], 6) : flight(b, a, y, -storey / 2, part.x[1] - part.x[0], 6);
-        into("stairs").push(...flightBoxes);
+        groups.stairs.push(...flight(a, b, y, storey, (part.x[1] - part.x[0]) * PLAN_SCALE.x, 8));
       } else {
         const walls = area(part.x, part.d, y, storey * 0.8);
         if (part.kind === "room" && part.room === target && floor === 1) groups.target.push(walls);

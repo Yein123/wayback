@@ -38,11 +38,15 @@ const MIRROR: Record<Hallway, [number, number]> = { SE: [1, 1], NE: [1, -1], SW:
 
 const flip = (h: Hallway, [x, y]: [number, number]): [number, number] => [x * MIRROR[h][0], y * MIRROR[h][1]];
 
-/** A cube's footprint: `width` along the hallway, `depth` away from it. */
-export const CUBE = { width: 12, depth: 5 };
+/** A cube's footprint in metres: `width` along the hallway, `depth` away from it. */
+export const CUBE = { width: 16, depth: 7 };
 
-/** Where you step in from the hallway: the gap between the toilet and the stairs. */
-export const CUBE_ENTRY_X = 0.9;
+/** The learner's floor plan is drawn 12 × 5 plan-metres; it's stretched to the cube's real size. */
+export const PLAN = { width: 12, depth: 5 };
+export const PLAN_SCALE = { x: CUBE.width / PLAN.width, d: CUBE.depth / PLAN.depth };
+
+/** Where the hallway stair arrives (plan x): the open corner by the end room on the stair's side. */
+export const CUBE_ENTRY_X = 5.1;
 
 /** The hallway's centre line, lifts outward, through both stacks to the staircase at its far end. */
 export function hallwayPath(h: Hallway): [number, number][] {
@@ -77,14 +81,15 @@ export function cubes(): Cube[] {
 
 /**
  * A point inside a cube, read off the learner's floor plan with the hallway along the top:
- * `x` is metres across the plan (+ = the stairs side), `d` is metres in from the hallway edge.
+ * `x` is plan-metres across it (+ = the stairs side), `d` is plan-metres in from the hallway edge.
  */
 export function cubePoint(c: Cube, x: number, d: number): [number, number] {
   const f = c.inward; // walking in
   const plus = c.stairsRight ? [-f[1], f[0]] : [f[1], -f[0]]; // your right : your left (map y points south)
   const nx = c.center[0] - f[0] * (CUBE.depth / 2);
   const ny = c.center[1] - f[1] * (CUBE.depth / 2);
-  return [nx + plus[0] * x + f[0] * d, ny + plus[1] * x + f[1] * d];
+  const [sx, sd] = [x * PLAN_SCALE.x, d * PLAN_SCALE.d];
+  return [nx + plus[0] * sx + f[0] * sd, ny + plus[1] * sx + f[1] * sd];
 }
 
 export type CubePart = { kind: "room" | "toilet" | "stairs"; room?: number; x: [number, number]; d: [number, number] };

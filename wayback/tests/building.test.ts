@@ -57,9 +57,12 @@ describe("building", () => {
     const at = (floor: 1 | 2, kind: string) => cubePlan(floor).find((p) => p.kind === kind)!.x;
     expect(at(1, "toilet")).toEqual(at(2, "stairs"));
     expect(at(1, "stairs")).toEqual(at(2, "toilet"));
-    // the entry gap sits between them
-    expect(at(1, "toilet")[1]).toBeLessThan(CUBE_ENTRY_X);
-    expect(at(1, "stairs")[0]).toBeGreaterThan(CUBE_ENTRY_X);
+    // the hallway stair arrives in the open corner past the inner stairs, just above the end room
+    const room1 = cubePlan(1).find((p) => p.room === 1)!;
+    expect(CUBE_ENTRY_X).toBeGreaterThan(at(1, "stairs")[1]);
+    expect(CUBE_ENTRY_X).toBeLessThan(6);
+    expect(room1.x[0]).toBeLessThan(CUBE_ENTRY_X);
+    expect(room1.d[0]).toBeGreaterThan(0.6);
   });
 
   it("mirrors the SE hallway into the other three", () => {
