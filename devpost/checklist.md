@@ -39,7 +39,7 @@ Build mode: fast
   Learner check: Run `npm run dev`, type `F6-26` from a parking guess, watch the building overview and the dive, step through the route, switch to 2D, and say whether it feels like the game you pictured and whether the structure looks like M06.
   Commit: `Show the whole building in 3D and dive into the route`
 
-- [ ] **4. Your parking is remembered after you close the app**
+- [x] **4. Your parking is remembered after you close the app**
   Becomes usable: Confirming a parking saves it. Home shows the Current Parking card with the label, photo thumbnail and time, and it's still there after you close and reopen the app. Capturing a new parking moves the old one into Parking History.
   Why now: You asked to make the whole navigation work before the phone test, and saving the car is its first piece. Firebase is familiar to you and low-risk, but it needs your Firebase project and keys.
   PRD ref: `prd.md > Capturing the Parking Spot`, `prd.md > Screens and Layout` (Home), `prd.md > States and Boundaries` (first use, parked, coming back later)
@@ -74,7 +74,7 @@ Build mode: fast
   Why now: Everything you asked for is in, so this tests it for real. CLIP (four photos) plus the 3D view on a phone is the biggest unknown left, and the dorm visit also collects the GPS anchor readings and settles the open building details (which cubes are mirrored, the way into F6-26).
   PRD ref: `prd.md > The Core Journey` (steps 1–6), `prd.md > Capturing the Parking Spot`
   Spec ref: `spec.md > Where It Runs and How Someone Tries It`, `spec.md > External Services and Dependencies` (Vercel, Hugging Face model files), `spec.md > Important Failure Modes` (CLIP slow or fails)
-  Build: Add a `README.md` with how to run it. Push the project to a GitHub repo (private is fine for now) and deploy it on Vercel — you sign in to GitHub and Vercel yourself. Make sure the model loads with download progress. Add the Firebase env vars in Vercel. At the dorm, take GPS readings at two or three known spots for `gps-anchors.json`.
+  Build: Add a `README.md` with how to run it. Push the project to a GitHub repo (private is fine for now) and deploy it on Vercel — you sign in to GitHub and Vercel yourself. Make sure the model loads with download progress. Add the Firebase env vars in Vercel. Add Survey mode: at a spot you tap your position on the floor plan (or pick the spot), the app records GPS and accuracy, you take front/right/back/left photos, and each is uploaded live to Firestore (`survey/` collection, shrunk to ~640px, behind a survey code); `npm run import-survey` pulls them into `public/reference/`, tags them, writes `gps-anchors.json` and rebuilds the embeddings. At the dorm, take GPS readings at two or three known spots for `gps-anchors.json`.
   Verify (mechanical): The Vercel build succeeds; the deployed URL returns the Home page, `public/data/embeddings.json` and a reference photo; a deployed-page browser check runs a match without errors.
   Learner check: On your phone at the dorm, do the full demo: capture the parking (four sides), go to F6-26, then Find my car from somewhere on the path, follow it back and tap Arrived. Tell me where guesses were wrong, how long matching took, and whether the 3D view stayed smooth.
   Commit: `Add README and deployment notes for phone testing`
@@ -137,3 +137,6 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Cubes that aren't on your route are greyed out (neutral grey) on your floor too (learner); only the hallway and your own cube stay in colour up close.
 - Plan reordered at the learner's request after slice 3: save my car (4) → find my car, help, arrive (5) → four-side capture pinned by GPS (6, new) → phone test at the dorm (7) → wrong-guess fixes (8). Tradeoff explained: we learn later whether four photos plus 3D run fast enough on the phone.
 - Four-side capture added (learner): front, right, back, left matched together. GPS becomes a pin when accurate (≤ 20 m), via GPS anchors collected at the dorm; it never decides the floor. Floor changes are confirmed by the user after lift/stairs steps rather than detected (a web page can't read the barometer, and motion sensing is unreliable). PRD and spec updated to match.
+- Firebase project `wayback-m06-1626` (display name wayback) created from the CLI at the learner's request after they signed in; Firestore in asia-southeast1; anonymous sign-in enabled by the learner in the console; rules deployed with `firebase deploy --only firestore:rules`.
+- `.env.local.example` is written but not committed: a plugin hook blocks git commands that mention .env files. The variable names are listed in `lib/firebase.ts`.
+- Survey mode added to slice 7 (learner): photos and GPS uploaded live to Firestore (free plan, shrunk photos) for importing as reference photos and GPS anchors. No model training is needed — CLIP is pretrained; it needs labelled reference photos.
