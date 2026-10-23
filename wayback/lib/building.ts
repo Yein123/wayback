@@ -41,8 +41,8 @@ const flip = (h: Hallway, [x, y]: [number, number]): [number, number] => [x * MI
 /** A cube's footprint in metres: `width` along the hallway, `depth` away from it. */
 export const CUBE = { width: 16, depth: 7 };
 
-/** The learner's floor plan is drawn 12 × 5 plan-metres; it's stretched to the cube's real size. */
-export const PLAN = { width: 12, depth: 5 };
+/** The learner's floor plan is drawn 12 × 6.2 plan-metres; it's stretched to the cube's real size. */
+export const PLAN = { width: 12, depth: 6.2 };
 export const PLAN_SCALE = { x: CUBE.width / PLAN.width, d: CUBE.depth / PLAN.depth };
 
 /** Where the hallway stair arrives (plan x): the open corner by the end room on the stair's side. */
@@ -106,10 +106,11 @@ export function cubePlan(floor: 1 | 2): CubePart[] {
   return [
     { kind: "toilet", x: floor === 1 ? left : right, d: top },
     { kind: "stairs", x: floor === 1 ? right : left, d: top },
-    { kind: "room", room: 4, x: [-5.94, -4.17], d: [1.1, 4.9] },
-    { kind: "room", room: 3, x: [-3.22, -0.04], d: [2.8, 4.9] },
-    { kind: "room", room: 2, x: [0.06, 3.35], d: [2.8, 4.9] },
-    { kind: "room", room: 1, x: [4.17, 5.94], d: [1.1, 4.9] },
+    // rooms set back from the hallway so there's room to walk in from the stair (learner)
+    { kind: "room", room: 4, x: [-5.94, -4.17], d: [2.3, 6.1] },
+    { kind: "room", room: 3, x: [-3.22, -0.04], d: [4.0, 6.1] },
+    { kind: "room", room: 2, x: [0.06, 3.35], d: [4.0, 6.1] },
+    { kind: "room", room: 1, x: [4.17, 5.94], d: [2.3, 6.1] },
   ];
 }
 

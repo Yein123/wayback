@@ -29,7 +29,7 @@ describe("building", () => {
     // the cube spot is just inside its entry gap, and F6-26 is room 3 on the plan (the middle door)
     const near = (p: [number, number], q: [number, number]) => Math.hypot(p[0] - q[0], p[1] - q[1]);
     expect(near(spot.pos, cubePoint(cube, CUBE_ENTRY_X, 0.6))).toBeLessThan(0.2);
-    expect(near(getSpot("room-f6-26")!.pos, cubePoint(cube, -1.63, 3.85))).toBeLessThan(0.2);
+    expect(near(getSpot("room-f6-26")!.pos, cubePoint(cube, -1.63, 5.05))).toBeLessThan(0.2);
     expect(spotLevel(spot)).toBe(floorLevel("5") + cube.half);
     expect(near(cube.door, getSpot("se-stair-2")!.pos)).toBeLessThan(0.2);
   });
@@ -62,7 +62,8 @@ describe("building", () => {
     expect(CUBE_ENTRY_X).toBeGreaterThan(at(1, "stairs")[1]);
     expect(CUBE_ENTRY_X).toBeLessThan(6);
     expect(room1.x[0]).toBeLessThan(CUBE_ENTRY_X);
-    expect(room1.d[0]).toBeGreaterThan(0.6);
+    // with a walkway between the top of the stair and the rooms
+    expect(room1.d[0]).toBeGreaterThan(2);
   });
 
   it("mirrors the SE hallway into the other three", () => {
