@@ -90,6 +90,15 @@ Source: `scope.md > The Core Loop` step 3, `scope.md > The POC Boundary` (way ba
 - [ ] **Arrived** moves the Current Parking entry into **Parking History** and empties the Current Parking card.
 - [ ] Parking History rows show date, time, location label, and photo, newest first. Rows are view-only.
 
+### Adding a Building
+Added during the build (learner): the first step of Wayback for any building.
+
+- [ ] **ADD BUILDING** on Home opens your buildings and a form for a new one (its name).
+- [ ] A building has floors, each with a label (B2, G, 1, 2…) and an uploaded image of that floor's plan, kept in the order added.
+- [ ] Each floor's plan can be given a scale (two points and the metres between them) and outlines drawn over it (hallway, room, lobby, lift, stairs).
+- [ ] The building's floors are shown stacked in 3D, raised from their outlines.
+- [ ] Buildings are saved to the cloud under the person who made them; only they can change them.
+
 ## States and Boundaries
 - **First use:** the Current Parking card shows an empty prompt to tap Capture, and Parking History is empty.
 - **Parked:** the Current Parking card shows the spot with **Find my car**.

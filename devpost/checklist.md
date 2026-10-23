@@ -69,7 +69,27 @@ Build mode: fast
   Learner check: Tap Where to?, type F6-26, capture four of your dorm photos on the laptop, and follow the route; then capture a parking and try Skip after one photo. Say whether the side guide is clear and the guesses right.
   Commit: `Capture four sides and pin with GPS`
 
-- [ ] **7. Open Wayback on your phone at the dorm**
+- [ ] **7. Add a building and upload its floor plans**
+  Becomes usable: Home has **ADD BUILDING**. You enter a building's name, then add its floors one by one — a label (B2, G, 1, 2…) and a photo or image of that floor's plan. The building and its floors are saved to Firebase under your account, and the building page shows each floor's plan. M06 keeps working as before.
+  Why now: You chose to start the "Wayback for any building" vision while the dorm survey waits on your visit. Uploading floor plans is the first step: the next slice draws outlines on them and raises them into 3D.
+  PRD ref: `prd.md > Adding a Building`, `prd.md > Possible Later Enhancements` (product vision)
+  Spec ref: `spec.md > Components` (Building Store), `spec.md > Data Model` (Buildings), `spec.md > Look and Feel`
+  Build: `lib/buildings.ts` (create a building, add a floor with its plan image shrunk to fit a Firestore record, list your buildings, read one); `/buildings` (your buildings + new building form) and `/building?id=…` (its floors, add a floor, view plans); Firestore rules: anyone signed in can read buildings, only the owner can change them; ADD BUILDING on Home.
+  Verify (mechanical): `npm run build` passes; rules deploy; on the live site, creating a building, adding two floors with plan images, and reloading shows them in order; another signed-in user can't change it (rules); no console errors.
+  Learner check: Tap ADD BUILDING, name a building (try M06 or a mall), add two floors with a plan photo each, reload, and say whether the steps are clear.
+  Commit: `Add buildings with uploaded floor plans`
+
+- [ ] **8. Draw each floor's outline and see the building in 3D**
+  Becomes usable: On a floor's plan you set the scale (tap two points and say how many metres apart), then tap around the walls and spaces to draw outlines (hallway, room, lobby, lift, stairs). The building page shows every floor stacked in 3D, raised from those outlines, with the plan underneath.
+  Why now: It turns the uploaded plans into the 3D you asked for, and it's the core of the map editor for any building. It comes right after the upload it builds on.
+  PRD ref: `prd.md > Adding a Building`
+  Spec ref: `spec.md > Components` (Outline Editor, Building3D), `spec.md > Data Model` (Buildings)
+  Build: an outline editor over the plan image (scale by two points; polygons with a kind; undo; saved per floor); a 3D view that extrudes each floor's polygons with three.js at its floor height, reusing the HUD look; pure helpers for scale and polygon area (tested).
+  Verify (mechanical): `npm test` passes the scale/outline helpers; `npm run build` passes; on the live site, a floor with a scale and three outlines shows them as 3D shapes at the right size and height, and they survive a reload.
+  Learner check: Set the scale on one of your uploaded floors, draw a hallway and two rooms, open the 3D view, and say whether it matches the plan.
+  Commit: `Draw floor outlines and raise them into 3D`
+
+- [ ] **9. Open Wayback on your phone at the dorm**
   Becomes usable: A real `https://` link that opens on your phone, uses the phone camera, runs the AI matching (four photos) and the 3D view on the phone itself, and has the GPS pin switched on.
   Why now: Everything you asked for is in, so this tests it for real. CLIP (four photos) plus the 3D view on a phone is the biggest unknown left, and the dorm visit also collects the GPS anchor readings and settles the open building details (which cubes are mirrored, the way into F6-26).
   PRD ref: `prd.md > The Core Journey` (steps 1–6), `prd.md > Capturing the Parking Spot`
@@ -79,9 +99,9 @@ Build mode: fast
   Learner check: On your phone at the dorm, do the full demo: capture the parking (four sides), go to F6-26, then Find my car from somewhere on the path, follow it back and tap Arrived. Tell me where guesses were wrong, how long matching took, and whether the 3D view stayed smooth.
   Commit: `Add README and deployment notes for phone testing`
 
-- [ ] **8. Fix a wrong guess: other guesses, sign photo, pick from list**
+- [ ] **10. Fix a wrong guess: other guesses, sign photo, pick from list**
   Becomes usable: When the guess is wrong you tap "No, that's wrong" and pick from the next best photos; if none fit, you snap a sign and it re-matches using the sign's text; if that still fails, you pick your spot from a list grouped by floor. Visible signs like "F6-25 - F6-28" now boost the right guess on every match.
-  Why now: Slice 7 shows how often matching is wrong in real life. This slice makes sure no wrong guess ever leaves you stuck, and adds the sign reading that matters most in identical-looking hallways.
+  Why now: Slice 9 shows how often matching is wrong in real life. This slice makes sure no wrong guess ever leaves you stuck, and adds the sign reading that matters most in identical-looking hallways.
   PRD ref: `prd.md > Fixing a Wrong Location`, `prd.md > Capturing the Parking Spot` (readable sign helps the guess), `prd.md > States and Boundaries` (unsure match)
   Spec ref: `spec.md > Components` (Locate Flow steps 4–6, Location Matcher), `spec.md > External Services and Dependencies` (Tesseract.js), `spec.md > Important Failure Modes`
   Build: Add Tesseract.js OCR to `lib/matcher.ts` and the sign bonus to `lib/scoring.ts` (with tests), then Other Guesses (`GuessCard`), the sign-photo step, and `SpotListPicker`. Tune the sign bonus against the real sign photos.
@@ -91,7 +111,7 @@ Build mode: fast
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 7, on your phone at the dorm (matching accuracy and photo angles can still change the wrong-guess fixes in slice 8)
+- [ ] Early usable behavior explored — after slice 9, on your phone at the dorm (matching accuracy and photo angles can still change the wrong-guess fixes in slice 10)
 - [ ] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
@@ -141,3 +161,4 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - `.env.local.example` is written but not committed: a plugin hook blocks git commands that mention .env files. The variable names are listed in `lib/firebase.ts`.
 - Survey mode added to slice 7 (learner): photos and GPS uploaded live to Firestore (free plan, shrunk photos) for importing as reference photos and GPS anchors. No model training is needed — CLIP is pretrained; it needs labelled reference photos.
 - Where to? flow added to slice 6 (learner): Home → type the destination → capture four sides where you are (+ GPS) → navigation starts. Works without a saved parking.
+- Two slices added before the phone test at the learner's request (7: add a building and upload its floor plans; 8: draw outlines and raise them into 3D) — the first steps of the "Wayback for any building" vision, built while the dorm survey waits on the learner's visit. This widens the POC beyond one building as a deliberate learner choice; the unique kernel and M06 are unchanged. Phone test → 9, wrong-guess fixes → 10.
