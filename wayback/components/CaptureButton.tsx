@@ -6,10 +6,12 @@ type Props = {
   onPhoto: (file: File) => void;
   label?: string;
   size?: "big" | "small";
+  /** Pick a saved image (e.g. a floor plan) instead of opening the camera. */
+  fromGallery?: boolean;
 };
 
 /** Opens the phone camera (or a file picker on a laptop) and hands back one photo. */
-export default function CaptureButton({ onPhoto, label = "Capture", size = "big" }: Props) {
+export default function CaptureButton({ onPhoto, label = "Capture", size = "big", fromGallery = false }: Props) {
   const input = useRef<HTMLInputElement>(null);
 
   return (
@@ -18,7 +20,7 @@ export default function CaptureButton({ onPhoto, label = "Capture", size = "big"
         ref={input}
         type="file"
         accept="image/*"
-        capture="environment"
+        capture={fromGallery ? undefined : "environment"}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

@@ -49,9 +49,14 @@ export default function Home() {
       {error && <p className="text-xs text-amber">Couldn&apos;t load your parkings: {error}</p>}
       <HistoryList history={history} />
 
-      <Link href="/survey" className="self-center font-hud text-[10px] tracking-[0.3em] text-muted">
-        SURVEY MODE ›
-      </Link>
+      <div className="flex justify-center gap-6">
+        <Link href="/buildings" className="font-hud text-[10px] tracking-[0.3em] text-muted">
+          + ADD BUILDING
+        </Link>
+        <Link href="/survey" className="font-hud text-[10px] tracking-[0.3em] text-muted">
+          SURVEY MODE ›
+        </Link>
+      </div>
     </main>
   );
 }
