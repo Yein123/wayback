@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wayback Scope</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --surface: #ffffff; --ink: #1d1d1b; --muted: #5f5e58;
+    --line: #dddad1; --accent: #1f6f5c; --accent-soft: #e2f0eb;
+    --warn: #9a5b00; --warn-soft: #fbefd9; --cut: #a33a32; --cut-soft: #f8e3e0;
+    --later: #3c5a9a; --later-soft: #e3e9f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151614; --surface: #1f201d; --ink: #ecebe6; --muted: #a8a69e;
+      --line: #34352f; --accent: #6cc4a8; --accent-soft: #1d3530;
+      --warn: #e6b05c; --warn-soft: #3a2e1a; --cut: #ec8a80; --cut-soft: #3d2220;
+      --later: #9fb6ea; --later-soft: #232c40;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 40px 16px 80px; }
+  .eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 40px; line-height: 1.1; margin: 6px 0 10px; }
+  h2 { font-size: 20px; margin: 0 0 10px; }
+  .lede { font-size: 19px; color: var(--muted); margin: 0 0 28px; }
+  .badge { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 99px;
+    background: var(--warn-soft); color: var(--warn); font-weight: 600; vertical-align: middle; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px 24px; margin: 0 0 18px; }
+  .kernel { border: 2px solid var(--accent); background: var(--accent-soft); }
+  .kernel p { font-size: 19px; margin: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 32px; } }
+  .grid .card { margin: 0; }
+  blockquote { margin: 10px 0 0; padding: 8px 14px; border-left: 3px solid var(--accent);
+    color: var(--muted); font-style: italic; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--ink); font-family: inherit; }
+  .steps { display: flex; gap: 8px; margin: 14px 0 12px; flex-wrap: wrap; }
+  .steps button { flex: 1 1 140px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+  .steps button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .step-detail { min-height: 52px; color: var(--muted); }
+  details { border: 1px solid var(--line); border-radius: 12px; margin: 0 0 10px; background: var(--surface); }
+  summary { cursor: pointer; padding: 14px 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  details ul { margin: 0; padding: 0 18px 14px 40px; }
+  details li { margin: 6px 0; }
+  .pill { font-size: 12px; padding: 2px 9px; border-radius: 99px; font-weight: 600; }
+  .now { background: var(--accent-soft); color: var(--accent); }
+  .later { background: var(--later-soft); color: var(--later); }
+  .cut { background: var(--cut-soft); color: var(--cut); }
+  .assume { background: var(--warn-soft); border-radius: 8px; padding: 2px 6px; color: var(--warn); font-size: 14px; }
+  footer { color: var(--muted); font-size: 14px; margin-top: 28px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Scope · Build With AI: Basics <span class="badge" style="background:var(--accent-soft);color:var(--accent)">Approved</span></div>
+  <h1>Wayback <span style="font-size:18px;color:var(--muted);font-weight:400">(working name)</span></h1>
+  <p class="lede">A phone app that gets you to the right room, and back to your parked car, by the shortest walking route inside buildings where GPS can't see.</p>
+
+  <section class="card kernel">
+    <div class="eyebrow">The unique kernel</div>
+    <p><strong>Snap your parking spot → AI matches it against reference photos of the building to pin the car on the map → shortest walking route there and back.</strong> It needs no GPS, no beacons and no constant photo-taking, and it gives a true shortest route, not just "the way you came."</p>
+  </section>
+
+  <section class="card">
+    <h2>How it fits together</h2>
+    <svg viewBox="0 0 800 300" role="img" aria-label="Diagram: parking capture and room number feed AI vision, which places points on the dorm map; the shortest-route engine produces step-by-step directions to the room and back to the car.">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#888"/>
+        </marker>
+      </defs>
+      <g stroke="#888" stroke-width="2" fill="none" marker-end="url(#arr)">
+        <path d="M170,70 L265,130"/>
+        <path d="M170,230 L265,170"/>
+        <path d="M425,150 L495,150"/>
+        <path d="M640,135 L640,85"/>
+        <path d="M640,165 L640,215"/>
+        <path d="M345,205 L345,240 L555,240" stroke-dasharray="5 5"/>
+      </g>
+      <g>
+        <rect x="20" y="40" width="150" height="60" rx="12" fill="var(--accent-soft)" stroke="var(--accent)"/>
+        <text x="95" y="66" text-anchor="middle" font-size="14" font-weight="600">📷 Parking capture</text>
+        <text x="95" y="86" text-anchor="middle" font-size="12">vs. reference photos</text>
+
+        <rect x="20" y="200" width="150" height="60" rx="12" fill="var(--accent-soft)" stroke="var(--accent)"/>
+        <text x="95" y="226" text-anchor="middle" font-size="14" font-weight="600">🔢 Room number</text>
+        <text x="95" y="246" text-anchor="middle" font-size="12">where you're going</text>
+
+        <rect x="265" y="105" width="160" height="90" rx="12" fill="var(--surface)" stroke="var(--ink)"/>
+        <text x="345" y="138" text-anchor="middle" font-size="15" font-weight="700">🧠 AI vision</text>
+        <text x="345" y="160" text-anchor="middle" font-size="12">reads signs → places</text>
+        <text x="345" y="176" text-anchor="middle" font-size="12">points on the map</text>
+
+        <rect x="495" y="115" width="290" height="70" rx="12" fill="var(--surface)" stroke="var(--ink)"/>
+        <text x="640" y="144" text-anchor="middle" font-size="15" font-weight="700">🗺️ Dorm map + shortest route</text>
+        <text x="640" y="166" text-anchor="middle" font-size="12">4 wings · 4 lifts · stairs · floors (hand-built)</text>
+
+        <rect x="545" y="25" width="190" height="58" rx="12" fill="var(--later-soft)" stroke="var(--later)"/>
+        <text x="640" y="50" text-anchor="middle" font-size="14" font-weight="600">➡️ Car → room</text>
+        <text x="640" y="70" text-anchor="middle" font-size="12">step-by-step directions</text>
+
+        <rect x="545" y="217" width="190" height="58" rx="12" fill="var(--later-soft)" stroke="var(--later)"/>
+        <text x="640" y="242" text-anchor="middle" font-size="14" font-weight="600">⬅️ Room → car</text>
+        <text x="640" y="262" text-anchor="middle" font-size="12">the "oh, that's cool" beat</text>
+      </g>
+      <text x="450" y="232" text-anchor="middle" font-size="11" fill="var(--muted)">way back: snap where you are</text>
+    </svg>
+  </section>
+
+  <section class="card">
+    <h2>The demo, shot by shot</h2>
+    <div class="steps" role="group" aria-label="Demo steps">
+      <button aria-pressed="true" data-d="Park in the dorm car park and capture the car's surroundings once. AI vision reads the bay/floor/zone signs and pins the car on the map.">1 · Park &amp; capture</button>
+      <button aria-pressed="false" data-d="Walk inside and enter your room number. The app shows the shortest route: which wing, which lift, which floor.">2 · Walk in</button>
+      <button aria-pressed="false" data-d="Follow the directions to your room. That's the effort ceiling: one capture, then the app does the rest.">3 · Reach the room</button>
+      <button aria-pressed="false" data-d="Later, open the app and snap where you are. AI matches your location, then lays out the shortest way back to the exact parking spot. That's the moment viewers remember.">4 · Back to the car</button>
+    </div>
+    <p class="step-detail" id="detail">Park in the dorm car park and capture the car's surroundings once. AI vision reads the bay/floor/zone signs and pins the car on the map.</p>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Who it's for</h2>
+      <p>Someone new to a big multi-floor building with a car park, like your family at a KL mall, or a newcomer at your dorm (4 directions, 4 lifts, many floors). Today a photo <em>remembers</em> the spot but doesn't get them <em>back</em> to it.</p>
+    </section>
+    <section class="card">
+      <h2>Why it matters to you</h2>
+      <p>A real family pain, and an idea ChatGPT can't solve, because it needs <em>your</em> location in <em>your</em> building.</p>
+      <blockquote>"can't remember where we parked the car, especially in Kuala Lumpur"</blockquote>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:18px">
+    <h2>Now · Later · Cut</h2>
+    <details open>
+      <summary><span class="pill now">NOW</span> The proof of concept</summary>
+      <ul>
+        <li><strong>One building: your dorm</strong>, with its layout entered by hand as a small map of connections (car park, entrances, 4 lifts, stairs, the floors and rooms needed).</li>
+        <li><strong>Reference photos of the building:</strong> a one-time setup where you photograph the key spots on the demo path (about 10–20 photos), each tagged to its place on the map.</li>
+        <li><strong>AI matches the parking capture</strong> against those reference photos (plus any visible signs) to pin the car. That's RAG-style retrieval, with images. <span class="assume">Assumption: a photo (or a few frames), not full video analysis. Confirm?</span></li>
+        <li><strong>Shortest-route calculation</strong> (a plain algorithm, not AI), shown as clear steps: car → room and room → car.</li>
+        <li><strong>Way back: "where am I?" matching.</strong> Snap where you are; the same matching pins <em>you</em> on the map, then the app routes you to the car, from anywhere on the demo path.</li>
+        <li><strong>Must be free for now:</strong> photo matching uses a free open-source model (e.g. CLIP), not a paid API.</li>
+        <li><strong>Safety net:</strong> if matching isn't confident, show the top guesses or let the user tap their spot on the map.</li>
+        <li><strong>Small demo path:</strong> one car park level, one or two lifts, one route to the room.</li>
+      </ul>
+    </details>
+    <details>
+      <summary><span class="pill later">LATER</span> Worth doing, not now</summary>
+      <ul>
+        <li>Paid vision AI for smarter matching, if the free model isn't accurate enough.</li>
+        <li>AI builds the map from a floor-plan photo or description.</li>
+        <li>AI turns the route into friendly, landmark-based directions.</li>
+        <li>True background recording with phone sensors (steps, compass, floor changes).</li>
+        <li>A shared map that grows from many users' walks and learns shortcuts anonymously.</li>
+        <li>More buildings: malls, schools, offices, apartments.</li>
+      </ul>
+    </details>
+    <details>
+      <summary><span class="pill cut">CUT</span> Out, with reasons</summary>
+      <ul>
+        <li><strong>GPS indoor guidance:</strong> GPS doesn't work reliably indoors or underground.</li>
+        <li><strong>Wi-Fi/Bluetooth beacons:</strong> needs the building's own equipment.</li>
+        <li><strong>Background sensor tracking (for now):</strong> too hard and drift-prone for 2–4 hours; map + AI vision replaces it.</li>
+        <li><strong>Photographing landmarks along the way:</strong> "really waste time".</li>
+        <li><strong>Adulting mentor:</strong> "not attractive enough, why I don't ask GPT".</li>
+      </ul>
+    </details>
+  </section>
+
+  <footer>Companion to <code>devpost/scope.md</code>; the Markdown file is the source of truth.</footer>
+</main>
+<script>
+  const btns = document.querySelectorAll('.steps button');
+  const detail = document.getElementById('detail');
+  btns.forEach(b => b.addEventListener('click', () => {
+    btns.forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true');
+    detail.textContent = b.dataset.d;
+  }));
+</script>
+</body>
+</html>

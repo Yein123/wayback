@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wayback Spec</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --surface: #ffffff; --ink: #14181d; --muted: #5a6470;
+    --line: #d9dee4; --accent: #0a8f9c; --accent-soft: #dff3f5; --glow: rgba(10,143,156,.25);
+    --violet: #6b4fd8; --violet-soft: #ece7ff; --warn: #9a5b00; --warn-soft: #fbefd9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #070b12; --surface: #0e1624; --ink: #e6f1f5; --muted: #8fa1ad;
+      --line: #1e2d42; --accent: #3ee6f2; --accent-soft: #0d2833; --glow: rgba(62,230,242,.4);
+      --violet: #9b7bff; --violet-soft: #1d1938; --warn: #ffc15e; --warn-soft: #33270f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #070b12; --surface: #0e1624; --ink: #e6f1f5; --muted: #8fa1ad;
+    --line: #1e2d42; --accent: #3ee6f2; --accent-soft: #0d2833; --glow: rgba(62,230,242,.4);
+    --violet: #9b7bff; --violet-soft: #1d1938; --warn: #ffc15e; --warn-soft: #33270f;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 40px 16px 80px; }
+  .eyebrow { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 40px; line-height: 1.1; margin: 6px 0 10px; }
+  h2 { font-size: 21px; margin: 0 0 12px; }
+  h3 { font-size: 16px; margin: 0 0 4px; }
+  .lede { font-size: 18px; color: var(--muted); margin: 0 0 24px; }
+  .badge { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; margin: 0 0 18px; }
+  .hero { border: 1.5px solid var(--accent); box-shadow: 0 0 24px var(--glow); background: var(--accent-soft); }
+  .hero ol { margin: 6px 0 0; padding-left: 22px; }
+  .hero li { margin: 4px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid .card { margin: 0; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 32px; } }
+  svg { width: 100%; height: auto; display: block; }
+  .box rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: all .2s; }
+  .box text { fill: var(--ink); font: 600 13px system-ui, sans-serif; }
+  .box .sub { fill: var(--muted); font-weight: 400; font-size: 11px; }
+  .box.on rect { stroke: var(--accent); stroke-width: 2.5; fill: var(--accent-soft); filter: drop-shadow(0 0 7px var(--glow)); }
+  .zone { fill: none; stroke: var(--line); stroke-dasharray: 6 5; }
+  .zlbl { fill: var(--muted); font: 12px system-ui, sans-serif; letter-spacing: .06em; }
+  .wire { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+  .wire.on { stroke: var(--accent); stroke-width: 2.5; }
+  .panel { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; min-height: 110px; }
+  .panel .files { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .ctrl { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .ctrl button { font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ctrl button:hover { border-color: var(--accent); }
+  .ctrl .count { color: var(--muted); font-size: 14px; margin-left: auto; }
+  code { font-size: 13px; background: var(--bg); padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 8px 0 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  details { border: 1px solid var(--line); border-radius: 12px; margin: 0 0 10px; background: var(--surface); }
+  summary { cursor: pointer; padding: 13px 18px; font-weight: 600; list-style: none; display: flex; gap: 10px; align-items: baseline; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; color: var(--accent); transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  summary .prd { font-weight: 400; font-size: 13px; color: var(--muted); margin-left: auto; }
+  details > div { padding: 0 18px 16px 40px; }
+  .swatches { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+  .sw { width: 64px; text-align: center; font-size: 11px; color: var(--muted); }
+  .sw i { display: block; height: 40px; border-radius: 10px; border: 1px solid var(--line); margin-bottom: 4px; }
+  .demo { background: #070b12; border-radius: 14px; padding: 16px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .demo svg { width: 220px; }
+  .demo p { color: #e6f1f5; margin: 0; font-size: 14px; }
+  .demo .hud { font: 700 13px system-ui; letter-spacing: .12em; color: #3ee6f2; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
+  .pulse { animation: pulse 1.6s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; margin-bottom: 8px; }
+  .t-you { background: var(--accent-soft); color: var(--accent); }
+  .t-rec { background: var(--violet-soft); color: var(--violet); }
+  .t-open { background: var(--warn-soft); color: var(--warn); }
+  ul.tight { margin: 0; padding-left: 20px; } ul.tight li { margin: 4px 0; }
+  .src { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Build With AI: Basics · Step 4 — Spec <span class="badge" style="background:var(--accent-soft);color:var(--accent)">approved</span></div>
+  <h1>Wayback, under the hood</h1>
+  <p class="lede">A Next.js web app on your phone. The AI runs in the browser, the building data lives in files, and your parkings are stored in Firebase.</p>
+
+  <div class="card hero">
+    <h2>How it works, in plain language</h2>
+    <ol>
+      <li><b>Dorm map file:</b> every spot on the demo path and how they connect. Hand-written, never changes.</li>
+      <li><b>Reference photos:</b> ~20 dorm photos. A setup script turns each into a list of numbers (an <i>embedding</i>) with the CLIP model.</li>
+      <li><b>AI in the browser:</b> your snap becomes numbers too, and the closest reference photos are the guesses. That's the <b>retrieval</b> in RAG. Sign reading (OCR) gives the right guess a boost.</li>
+      <li><b>Firebase:</b> stores your Current Parking + History with small thumbnails. An invisible anonymous sign-in keeps them private to your phone.</li>
+    </ol>
+    <p style="margin:10px 0 0">The <b>route</b> is plain code: the Dijkstra shortest-path algorithm over the map's links. Each link becomes one glowing step.</p>
+  </div>
+
+  <section class="card">
+    <h2>The Core Journey Through the System</h2>
+    <p class="src">Step through it to see which pieces light up. PRD ref: <code>prd.md › The Core Journey</code></p>
+    <svg viewBox="0 0 860 400" role="img" aria-label="Wayback architecture">
+      <rect class="zone" x="10" y="10" width="840" height="250" rx="16"/>
+      <text class="zlbl" x="26" y="32">PHONE BROWSER · Next.js on Vercel</text>
+      <!-- wires -->
+      <path class="wire" data-w="home-store" d="M120,100 V160"/>
+      <path class="wire" data-w="locate-match" d="M330,100 V160"/>
+      <path class="wire" data-w="locate-store" d="M290,100 C290,135 160,130 140,160"/>
+      <path class="wire" data-w="dest-route" d="M540,100 V160"/>
+      <path class="wire" data-w="dir-route" d="M740,100 C740,135 600,130 580,160"/>
+      <path class="wire" data-w="dir-diagram" d="M760,100 V160"/>
+      <path class="wire" data-w="store-fs" d="M120,220 V300"/>
+      <path class="wire" data-w="match-emb" d="M330,220 V300"/>
+      <path class="wire" data-w="route-map" d="M540,220 V300"/>
+      <path class="wire" data-w="match-gps" d="M380,190 H430"/>
+      <!-- screens -->
+      <g class="box" data-b="home" transform="translate(40,45)"><rect width="160" height="55" rx="12"/><text x="80" y="25" text-anchor="middle">Home</text><text class="sub" x="80" y="42" text-anchor="middle">Capture · card · history</text></g>
+      <g class="box" data-b="locate" transform="translate(250,45)"><rect width="160" height="55" rx="12"/><text x="80" y="25" text-anchor="middle">Locate Flow</text><text class="sub" x="80" y="42" text-anchor="middle">snap · ✓ · fixes</text></g>
+      <g class="box" data-b="dest" transform="translate(460,45)"><rect width="160" height="55" rx="12"/><text x="80" y="25" text-anchor="middle">Destination</text><text class="sub" x="80" y="42" text-anchor="middle">room number</text></g>
+      <g class="box" data-b="dir" transform="translate(670,45)"><rect width="160" height="55" rx="12"/><text x="80" y="25" text-anchor="middle">Directions</text><text class="sub" x="80" y="42" text-anchor="middle">Next · Help · Arrived</text></g>
+      <!-- logic -->
+      <g class="box" data-b="store" transform="translate(40,160)"><rect width="160" height="60" rx="12"/><text x="80" y="27" text-anchor="middle">Parking Store</text><text class="sub" x="80" y="44" text-anchor="middle">lib/parkings.ts</text></g>
+      <g class="box" data-b="match" transform="translate(250,160)"><rect width="130" height="60" rx="12"/><text x="65" y="27" text-anchor="middle">Location Matcher</text><text class="sub" x="65" y="44" text-anchor="middle">CLIP + OCR</text></g>
+      <g class="box" data-b="gps" transform="translate(430,170)"><rect width="70" height="40" rx="10"/><text x="35" y="25" text-anchor="middle">GPS</text></g>
+      <g class="box" data-b="route" transform="translate(520,160)"><rect width="120" height="60" rx="12"/><text x="60" y="27" text-anchor="middle">Route Planner</text><text class="sub" x="60" y="44" text-anchor="middle">Dijkstra</text></g>
+      <g class="box" data-b="diagram" transform="translate(690,160)"><rect width="140" height="60" rx="12"/><text x="70" y="27" text-anchor="middle">Step Diagram</text><text class="sub" x="70" y="44" text-anchor="middle">glowing SVG</text></g>
+      <!-- data -->
+      <g class="box" data-b="fs" transform="translate(40,300)"><rect width="160" height="70" rx="12"/><text x="80" y="30" text-anchor="middle">Firestore ☁</text><text class="sub" x="80" y="48" text-anchor="middle">your parkings</text></g>
+      <g class="box" data-b="emb" transform="translate(250,300)"><rect width="160" height="70" rx="12"/><text x="80" y="30" text-anchor="middle">embeddings.json</text><text class="sub" x="80" y="48" text-anchor="middle">+ reference photos</text></g>
+      <g class="box" data-b="map" transform="translate(460,300)"><rect width="160" height="70" rx="12"/><text x="80" y="30" text-anchor="middle">dorm-map.json</text><text class="sub" x="80" y="48" text-anchor="middle">spots + links</text></g>
+      <g class="box" data-b="script" transform="translate(670,300)"><rect width="160" height="70" rx="12"/><text x="80" y="30" text-anchor="middle">Setup script</text><text class="sub" x="80" y="48" text-anchor="middle">photos → embeddings (once)</text></g>
+      <path class="wire" data-w="script-emb" d="M670,335 H410"/>
+    </svg>
+    <div class="panel" id="panel" aria-live="polite"></div>
+    <div class="ctrl"><button id="prev">← Back</button><button id="next">Next →</button><button id="all">Show all</button><span class="count" id="count"></span></div>
+  </section>
+
+  <section class="card">
+    <h2>Stack</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Piece</th><th>Choice</th><th>Who chose</th></tr>
+      <tr><td>App</td><td>Next.js (App Router) + React + TypeScript</td><td>You, familiar stack</td></tr>
+      <tr><td>Styling</td><td>Tailwind CSS</td><td>You</td></tr>
+      <tr><td>Database</td><td>Firebase Firestore + Anonymous Auth (free Spark plan)</td><td>You, over browser storage</td></tr>
+      <tr><td>Image AI</td><td>Transformers.js v3 + CLIP, in the browser</td><td>Recommended, you accepted</td></tr>
+      <tr><td>Sign reading</td><td>Tesseract.js</td><td>Recommended, you accepted</td></tr>
+      <tr><td>Route</td><td>Hand-written Dijkstra</td><td>Follows from the PRD</td></tr>
+      <tr><td>Hosting</td><td>Vercel (free) for an https link on your phone</td><td>Recommended, you accepted</td></tr>
+      <tr><td>Tests</td><td>Vitest, route + scoring only</td><td>Implementation detail</td></tr>
+    </table></div>
+    <p class="src" style="margin-top:10px">Verify early: current package versions, the CLIP model ID and download size, and phone browser support (WASM fallback if there's no WebGPU).</p>
+  </section>
+
+  <section class="card">
+    <h2>Look and Feel</h2>
+    <p class="src">From <code>prd.md › Look and Feel</code>: futuristic AR/game HUD on a dark background. The palette is proposed.</p>
+    <div class="swatches">
+      <div class="sw"><i style="background:#070B12"></i>background</div>
+      <div class="sw"><i style="background:#0E1624"></i>panel</div>
+      <div class="sw"><i style="background:#3EE6F2;box-shadow:0 0 12px rgba(62,230,242,.6)"></i>glow cyan</div>
+      <div class="sw"><i style="background:#9B7BFF"></i>violet</div>
+      <div class="sw"><i style="background:#FFC15E"></i>amber · fix</div>
+    </div>
+    <p style="margin:6px 0 12px">Orbitron for headings and labels like <b>B1 · ZONE C</b>, Inter for body text. Rounded panels with HUD corner brackets, and "quest" copy like <i>"Spot locked."</i></p>
+    <div class="demo">
+      <svg viewBox="0 0 220 130" aria-label="Example lifts step diagram">
+        <defs><filter id="g"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <polygon points="10,115 210,115 190,95 30,95" fill="none" stroke="#1e2d42"/>
+        <g fill="none" stroke="#3a5068" stroke-width="2">
+          <rect x="30" y="25" width="45" height="70" rx="3"/><rect x="145" y="25" width="45" height="70" rx="3"/>
+        </g>
+        <g class="pulse" filter="url(#g)"><rect x="87" y="25" width="45" height="70" rx="3" fill="rgba(62,230,242,.12)" stroke="#3EE6F2" stroke-width="2.5"/></g>
+        <text x="110" y="18" text-anchor="middle" fill="#3EE6F2" font-size="11" font-weight="700" letter-spacing="2">LIFT 2</text>
+      </svg>
+      <div><div class="hud">STEP 2 / 6</div><p>Take <b>Lift 2</b> up to Floor 5</p><p style="color:#8fa1ad;font-size:12px;margin-top:4px">Example of a <code>lifts</code> Step Diagram</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Components</h2>
+    <details open><summary>Location Matcher <span class="prd">Capturing · Fixing a Wrong Location</span></summary><div>
+      <ol style="margin:0;padding-left:20px"><li>Resize the photo → CLIP embedding (512 numbers)</li><li>Cosine similarity against every reference photo</li><li>Each spot's score = its best photo</li><li>OCR words that match a spot's <code>signText</code> → +0.10 bonus (tune it)</li><li>Return the ranked spots. The user always ✓ confirms, so there's no threshold</li></ol>
+      <p class="src">lib/matcher.ts · lib/scoring.ts (tested)</p></div></details>
+    <details><summary>Locate Flow <span class="prd">Capturing · Fixing · Finding the Car · Help</span></summary><div>
+      <p style="margin:0">One page, <code>?mode=park|car|help</code>: Snap → Working → Result ✓ → Other Guesses → Sign Photo → List Picker.</p>
+      <p class="src">app/locate/page.tsx · GuessCard · SpotListPicker</p></div></details>
+    <details><summary>Route Planner <span class="prd">Guiding to a Room · Finding the Car</span></summary><div>
+      <p style="margin:0"><code>findRoom</code> → <code>shortestPath</code> (Dijkstra, cost = walking seconds) → <code>toSteps</code>. Links are one-way with a matching reverse, so "left" becomes "right" on the way back.</p>
+      <p class="src">lib/route.ts (tested)</p></div></details>
+    <details><summary>Step Diagram <span class="prd">Guiding to a Room</span></summary><div>
+      <p style="margin:0">SVG templates: <code>lifts</code>, <code>turn</code>, <code>lift-ride</code>, <code>door</code>, <code>walk</code>, <code>stairs</code>, <code>half-stairs</code>, <code>cube</code>, <code>arrive</code>. Each map link names its template and the highlight.</p>
+      <p class="src">components/StepDiagram.tsx</p></div></details>
+    <details><summary>Parking Store <span class="prd">Capturing · Arriving and Parking History</span></summary><div>
+      <p style="margin:0"><code>getCurrent</code>, <code>listHistory</code>, <code>saveParking</code> (moves an old current parking to history), <code>endParking</code>. Thumbnails are ~20–40 KB base64, and offline saves sync later.</p>
+      <p class="src">lib/firebase.ts · lib/parkings.ts</p></div></details>
+    <details><summary>Trip State · GPS Stamp · Setup Script</summary><div>
+      <ul class="tight"><li><b>Trip State:</b> React context mirrored to sessionStorage, so a refresh mid-route keeps your place</li><li><b>GPS Stamp:</b> one reading, 5-second timeout, never blocks</li><li><b>Setup script:</b> <code>npm run embeddings</code> → <code>public/data/embeddings.json</code></li></ul></div></details>
+  </section>
+
+  <section class="card" style="margin-top:18px">
+    <h2>Data Model</h2>
+    <div class="grid">
+      <div><h3>dorm-map.json <span class="src">(hand-written)</span></h3>
+<pre>{ "id": "lobby-l2-g",
+  "label": "Lift 2 Lobby · G",
+  "floor": "G", "type": "lobby",
+  "signText": ["LIFT 2"] }
+
+{ "from": "lobby-g", "to": "lobby-l2-g",
+  "cost": 5, "instruction": "Take Lift 2",
+  "diagram": { "kind": "lifts",
+    "count": 3, "highlight": 1 } }</pre></div>
+      <div><h3>Firestore <span class="src">users/{uid}/parkings</span></h3>
+<pre>spotId     "cp-zone-c"
+label      "Car Park · Zone C"
+thumb      base64 JPEG
+gps        {lat,lng,accuracy} | null
+status     "current" | "history"
+createdAt  timestamp
+endedAt    timestamp | null</pre>
+      <p class="src">Rules: only your anonymous user can read or write your parkings.</p></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>File Structure</h2>
+<pre>wayback/
+├── app/            page.tsx (Home) · locate/ · destination/ · directions/ · layout.tsx
+├── components/     CaptureButton · ParkingCard · HistoryList · GuessCard
+│                   SpotListPicker · StepDiagram · HudPanel
+├── lib/            firebase · parkings · matcher · scoring · route · map · image · gps · trip
+├── public/data/    dorm-map.json · reference-photos.json · embeddings.json (generated)
+├── public/reference/   ~10–20 dorm photos
+├── scripts/        build-embeddings.mjs
+├── tests/          route.test.ts · scoring.test.ts
+└── firestore.rules · .env.local.example · tailwind.config.ts · README.md</pre>
+  </section>
+
+  <div class="grid">
+    <section class="card"><h2>When it breaks</h2>
+      <ul class="tight">
+        <li><b>The AI is slow to load</b> → "Waking up the AI…". If it fails → list picker. Open the app once on Wi-Fi before the demo.</li>
+        <li><b>Wrong match</b> → other guesses → sign photo → list</li>
+        <li><b>OCR reads nothing</b> → image score only</li>
+        <li><b>Offline save</b> → Firestore queues it</li>
+        <li><b>Unknown room</b> → "doesn't know room ___ yet"</li>
+      </ul></section>
+    <section class="card"><h2>How to run & demo</h2>
+      <ul class="tight">
+        <li><code>npm run dev</code> → localhost:3000</li>
+        <li><code>npm run embeddings</code> after adding photos</li>
+        <li>Push → Vercel → open the https link on your phone</li>
+        <li>Record the phone screen at the dorm: park → room → Find my car → Arrived</li>
+        <li>Submit: a public GitHub repo + the video (the Vercel link is optional)</li>
+      </ul></section>
+  </div>
+
+  <div class="grid" style="margin-top:18px">
+    <section class="card"><span class="tag t-you">Your decisions</span>
+      <ul class="tight"><li>Next.js + React + Tailwind</li><li>Firebase over browser storage</li><li>AI in the browser + Vercel</li><li>Drawn diagrams, "like Unity but simple"</li></ul></section>
+    <section class="card"><span class="tag t-rec">My recommendations (change them if you like)</span>
+      <ul class="tight"><li>Thumbnails inside Firestore + anonymous sign-in, to stay free</li><li>The palette and fonts</li><li>A new capture moves the old parking to history</li><li>One photo per capture</li></ul></section>
+  </div>
+  <section class="card" style="margin-top:18px"><span class="tag t-open">Useful unknown, cleared up</span>
+    <p style="margin:0">"Browser storage loses data on refresh?" No: it survives refreshes and restarts. What resets is React <code>useState</code>. You chose Firebase anyway. Trip State still uses sessionStorage, so <b>during the build, refresh on the Directions screen and watch your step survive.</b></p>
+  </section>
+
+  <p class="src">The canonical version is <code>devpost/spec.md</code>. This page works offline.</p>
+</main>
+<script>
+  const steps = [
+    ["1 · Open the app", "Home asks the Parking Store for your current parking and history. Firebase signs you in anonymously in the background. CLIP starts downloading so it's ready.", ["home","store","fs"], ["home-store","store-fs"], "app/page.tsx · lib/parkings.ts · lib/firebase.ts"],
+    ["2 · Capture + match", "You snap the parking spot. The Location Matcher turns it into numbers, compares them against the reference embeddings, and reads any sign text. A GPS reading is taken on the side.", ["locate","match","emb","gps"], ["locate-match","match-emb","match-gps"], "app/locate/page.tsx · lib/matcher.ts · lib/scoring.ts · lib/gps.ts"],
+    ["3 · ✓ Confirm", "Tapping ✓ saves a 'current' parking (spot, label, thumbnail, GPS, time) to Firestore. If it's wrong: other guesses → sign photo → list.", ["locate","store","fs"], ["locate-store","store-fs"], "lib/parkings.ts · components/GuessCard.tsx · SpotListPicker.tsx"],
+    ["4 · Where to?", "You type 512. The Route Planner finds room 512 in the map and runs Dijkstra from the parking spot.", ["dest","route","map"], ["dest-route","route-map"], "app/destination/page.tsx · lib/route.ts · lib/map.ts"],
+    ["5 · Directions", "Each link on the path becomes a step: one instruction line plus a glowing Step Diagram (three lifts, Lift 2 lit). Trip State remembers which step you're on.", ["dir","route","diagram"], ["dir-route","dir-diagram"], "app/directions/page.tsx · components/StepDiagram.tsx · lib/trip.tsx"],
+    ["6 · Find my car", "The same Locate Flow, now finding you. Then the Route Planner goes from your spot to the parking spot. Help on any step re-runs this.", ["locate","match","emb","route","map","dir","diagram"], ["locate-match","match-emb","route-map","dir-route","dir-diagram"], "app/locate/page.tsx?mode=car|help"],
+    ["7 · Arrived", "The Parking Store flips the record to 'history' with an end time. Home shows an empty card and the trip appears in the history.", ["dir","store","fs","home"], ["store-fs","home-store"], "lib/parkings.ts → endParking()"],
+    ["Setup (once, before the app runs)", "You photograph ~20 dorm spots and tag each one. The setup script turns every photo into an embedding and writes embeddings.json, which ships with the app.", ["script","emb"], ["script-emb"], "scripts/build-embeddings.mjs · public/reference/ · public/data/"]
+  ];
+  const boxes = [...document.querySelectorAll(".box")], wires = [...document.querySelectorAll(".wire")];
+  const panel = document.getElementById("panel"), count = document.getElementById("count");
+  let cur = 0;
+  function show(i) {
+    cur = (i + steps.length) % steps.length;
+    const [t, d, b, w, f] = steps[cur];
+    boxes.forEach(x => x.classList.toggle("on", b.includes(x.dataset.b)));
+    wires.forEach(x => x.classList.toggle("on", w.includes(x.dataset.w)));
+    panel.innerHTML = `<h3>${t}</h3><div>${d}</div><div class="files">Files: ${f}</div>`;
+    count.textContent = `${cur + 1} / ${steps.length}`;
+  }
+  document.getElementById("prev").onclick = () => show(cur - 1);
+  document.getElementById("next").onclick = () => show(cur + 1);
+  document.getElementById("all").onclick = () => {
+    boxes.forEach(x => x.classList.add("on")); wires.forEach(x => x.classList.add("on"));
+    panel.innerHTML = "<h3>Everything</h3><div>All the pieces together. Press Next to go back to stepping.</div>"; count.textContent = "";
+  };
+  show(0);
+</script>
+</body>
+</html>

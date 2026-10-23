@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* Wayback HUD palette (spec.md > Look and Feel) */
+@theme {
+  --color-void: #070b12;
+  --color-panel: #0e1624;
+  --color-edge: #1e2d42;
+  --color-glow: #3ee6f2;
+  --color-violet: #9b7bff;
+  --color-amber: #ffc15e;
+  --color-ink: #e6f1f5;
+  --color-muted: #8fa1ad;
+
+  --font-sans: var(--font-inter);
+  --font-hud: var(--font-orbitron);
+
+  --shadow-glow: 0 0 16px rgba(62, 230, 242, 0.45);
+  --shadow-glow-lg: 0 0 32px rgba(62, 230, 242, 0.55);
+  --shadow-violet: 0 0 16px rgba(155, 123, 255, 0.4);
+
+  --animate-pulse-glow: pulse-glow 2.4s ease-in-out infinite;
+  --animate-scan: scan 1.6s linear infinite;
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  @keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+}
+
+html,
+body {
+  background: var(--color-void);
+  color: var(--color-ink);
+}
+
+body {
+  /* faint HUD grid behind everything */
+  background-image:
+    linear-gradient(rgba(62, 230, 242, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(62, 230, 242, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}

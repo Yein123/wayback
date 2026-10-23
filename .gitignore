@@ -1,0 +1,32 @@
+/devpost/learner-profile.md
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# dependencies
+node_modules/
+
+# testing
+coverage/
+
+# next.js
+.next/
+/wayback/out/
+/wayback/build/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# model cache from the embeddings script
+.cache/
+/reference-inbox/

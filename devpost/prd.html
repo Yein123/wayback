@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wayback PRD</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --surface: #ffffff; --ink: #14181d; --muted: #5a6470;
+    --line: #d9dee4; --accent: #0a8f9c; --accent-soft: #dff3f5; --glow: rgba(10,143,156,.25);
+    --warn: #9a5b00; --warn-soft: #fbefd9; --cut: #a33a32; --cut-soft: #f8e3e0;
+    --later: #4b4fb0; --later-soft: #e6e7f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0f14; --surface: #121821; --ink: #e6f1f5; --muted: #8fa1ad;
+      --line: #223040; --accent: #3ee6f2; --accent-soft: #0f2a33; --glow: rgba(62,230,242,.35);
+      --warn: #f2c066; --warn-soft: #33270f; --cut: #ff8f86; --cut-soft: #361a19;
+      --later: #a9adff; --later-soft: #1d1f3a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0f14; --surface: #121821; --ink: #e6f1f5; --muted: #8fa1ad;
+    --line: #223040; --accent: #3ee6f2; --accent-soft: #0f2a33; --glow: rgba(62,230,242,.35);
+    --warn: #f2c066; --warn-soft: #33270f; --cut: #ff8f86; --cut-soft: #361a19;
+    --later: #a9adff; --later-soft: #1d1f3a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 40px 16px 80px; }
+  .eyebrow { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 40px; line-height: 1.1; margin: 6px 0 10px; }
+  h2 { font-size: 21px; margin: 0 0 12px; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  .lede { font-size: 19px; color: var(--muted); margin: 0 0 26px; }
+  .badge { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 99px;
+    background: var(--warn-soft); color: var(--warn); font-weight: 600; vertical-align: middle; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px 24px; margin: 0 0 18px; }
+  .hero { border: 1.5px solid var(--accent); box-shadow: 0 0 24px var(--glow); background: var(--accent-soft); }
+  .hero p { margin: 0; font-size: 17px; }
+  .hero strong { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid .card { margin: 0; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 32px; } }
+  svg { width: 100%; height: auto; display: block; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: all .15s; }
+  .node text { fill: var(--ink); font: 600 13px system-ui, sans-serif; }
+  .node .sub { fill: var(--muted); font-weight: 400; font-size: 11px; }
+  .node { cursor: pointer; }
+  .node.active rect { stroke: var(--accent); stroke-width: 2.5; fill: var(--accent-soft); filter: drop-shadow(0 0 6px var(--glow)); }
+  .edge { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arr); }
+  .edge.fix { stroke: var(--warn); stroke-dasharray: 5 4; }
+  .lbl { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .lbl.fix { fill: var(--warn); }
+  .panel { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; min-height: 120px; }
+  .panel ul { margin: 6px 0 0; padding-left: 20px; }
+  .ctrl { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+  .ctrl button { font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ctrl button:hover { border-color: var(--accent); }
+  .ctrl .count { color: var(--muted); font-size: 14px; margin-left: auto; }
+  details { border: 1px solid var(--line); border-radius: 12px; margin: 0 0 10px; background: var(--surface); }
+  summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style: none; display: flex; gap: 10px; align-items: center; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; color: var(--accent); transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  details > div { padding: 0 18px 16px 40px; }
+  .check { list-style: none; padding: 0; margin: 6px 0 0; }
+  .check li { padding-left: 26px; position: relative; margin: 4px 0; }
+  .check li::before { content: "☐"; position: absolute; left: 0; color: var(--accent); }
+  .assume { font-size: 12px; font-weight: 600; color: var(--warn); background: var(--warn-soft); padding: 1px 8px; border-radius: 99px; }
+  .src { font-size: 13px; color: var(--muted); }
+  code { font-size: 13px; background: var(--bg); padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); }
+  .then-now { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+  .then-now .arrow { font-size: 22px; color: var(--accent); }
+  .quote { color: var(--muted); font-style: italic; }
+  @media (max-width: 600px) { .then-now { grid-template-columns: 1fr; } .then-now .arrow { transform: rotate(90deg); justify-self: center; } }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; margin-bottom: 8px; }
+  .t-build { background: var(--accent-soft); color: var(--accent); }
+  .t-defer { background: var(--later-soft); color: var(--later); }
+  .t-no { background: var(--cut-soft); color: var(--cut); }
+  .t-open { background: var(--warn-soft); color: var(--warn); }
+  ul.tight { margin: 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Build With AI: Basics · Step 3 — PRD <span class="badge" style="background:var(--accent-soft);color:var(--accent)">approved</span></div>
+  <h1>Wayback</h1>
+  <p class="lede">Snap your parking spot once. Get to your room, then back to your car, step by step, inside a building GPS can't see.</p>
+
+  <div class="card hero">
+    <p><strong>What changed since scope.</strong> Scope said: <em>"AI matches the parking capture… shortest walking route there and back."</em> Now we know exactly what that means. There's one Home screen. Every AI guess needs your ✓. Wrong guesses have a three-level safety net. Directions run one step at a time with the right lift glowing. <strong>Find my car</strong>, <strong>Help</strong>, and <strong>Arrived</strong> close the loop.</p>
+  </div>
+
+  <!-- Journey diagram -->
+  <section class="card">
+    <h2>The Core Journey</h2>
+    <p class="src">Tap a box or use the buttons to walk through it. Source: <code>scope.md › The Core Loop</code></p>
+    <svg viewBox="0 0 860 330" role="img" aria-label="Wayback journey diagram">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="color:var(--muted)"/>
+        </marker>
+      </defs>
+      <!-- row 1: to the room -->
+      <path class="edge" d="M140,55 H175"/>
+      <path class="edge" d="M315,55 H350"/>
+      <path class="edge" d="M490,55 H525"/>
+      <path class="edge" d="M665,55 H700"/>
+      <!-- fix loop -->
+      <path class="edge fix" d="M420,85 V140"/>
+      <path class="edge fix" d="M455,150 C500,150 510,110 470,88"/>
+      <text class="lbl fix" x="428" y="118">wrong?</text>
+      <!-- down to row 3 -->
+      <path class="edge" d="M780,85 V115 C780,190 120,170 75,230"/>
+      <text class="lbl" x="350" y="196">… later, from anywhere on the demo path …</text>
+      <!-- row 3: back to the car -->
+      <path class="edge" d="M140,265 H175"/>
+      <path class="edge" d="M315,265 H350"/>
+      <path class="edge" d="M490,265 H525"/>
+      <path class="edge" d="M665,265 H700"/>
+      <path class="edge fix" d="M595,295 C595,325 420,325 420,297"/>
+      <text class="lbl fix" x="455" y="322">Help → re-locate</text>
+      <path class="edge fix" d="M420,235 C420,205 400,190 420,180"/>
+
+      <g class="node" data-i="0" transform="translate(10,25)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">Home</text><text class="sub" x="65" y="45" text-anchor="middle">tap Capture</text></g>
+      <g class="node" data-i="1" transform="translate(185,25)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">Snap parking</text><text class="sub" x="65" y="45" text-anchor="middle">one photo</text></g>
+      <g class="node" data-i="2" transform="translate(360,25)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">AI guess → ✓</text><text class="sub" x="65" y="45" text-anchor="middle">"B1 · Zone C"</text></g>
+      <g class="node" data-i="3" transform="translate(535,25)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">Where to?</text><text class="sub" x="65" y="45" text-anchor="middle">type room no.</text></g>
+      <g class="node" data-i="4" transform="translate(710,25)"><rect width="140" height="60" rx="12"/><text x="70" y="28" text-anchor="middle">Steps to room</text><text class="sub" x="70" y="45" text-anchor="middle">highlight · Next</text></g>
+      <g class="node" data-i="5" transform="translate(350,140)"><rect width="105" height="40" rx="10"/><text x="52" y="25" text-anchor="middle">Fix it</text></g>
+      <g class="node" data-i="6" transform="translate(10,235)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">Find my car</text><text class="sub" x="65" y="45" text-anchor="middle">on parking card</text></g>
+      <g class="node" data-i="7" transform="translate(185,235)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">Snap where</text><text class="sub" x="65" y="45" text-anchor="middle">you are</text></g>
+      <g class="node" data-i="8" transform="translate(360,235)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">AI guess → ✓</text><text class="sub" x="65" y="45" text-anchor="middle">same fixes</text></g>
+      <g class="node" data-i="9" transform="translate(535,235)"><rect width="130" height="60" rx="12"/><text x="65" y="28" text-anchor="middle">Steps to car</text><text class="sub" x="65" y="45" text-anchor="middle">shortest route</text></g>
+      <g class="node" data-i="10" transform="translate(710,235)"><rect width="140" height="60" rx="12"/><text x="70" y="28" text-anchor="middle">Arrived</text><text class="sub" x="70" y="45" text-anchor="middle">→ history</text></g>
+    </svg>
+    <div class="panel" id="panel" aria-live="polite"></div>
+    <div class="ctrl">
+      <button id="prev">← Back</button><button id="next">Next →</button>
+      <span class="count" id="count"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Screens and Layout</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Screen</th><th>What's on it</th><th>Reached from</th></tr>
+      <tr><td><b>Home</b></td><td>Capture (main action) · Current Parking card (label, photo, time, <b>Find my car</b>) · Parking History list</td><td>App open · Arrived</td></tr>
+      <tr><td><b>Location Result</b></td><td>Your photo · AI's label + matched reference photo · ✓ · "No, that's wrong"</td><td>Capture · Find my car · Help</td></tr>
+      <tr><td><b>Other Guesses</b></td><td>Next best guesses as labelled photos · "None of these"</td><td>"No, that's wrong"</td></tr>
+      <tr><td><b>Destination</b></td><td>"Where are you going?" room-number box</td><td>Parking confirmed</td></tr>
+      <tr><td><b>Directions</b></td><td>Highlighted area picture · one-line instruction · Next · Help · Arrived on the last step</td><td>Destination · located yourself</td></tr>
+    </table></div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Look and Feel</h2>
+      <ul class="tight">
+        <li>Futuristic AR / game feel, like a sci-fi visor HUD, inspired by AR games like Pokémon GO</li>
+        <li><b>Dark background</b>, glowing accent lines</li>
+        <li>The correct lift, door, or turn <b>glows</b> in each step</li>
+        <li>Playful, rounded "quest" touches</li>
+        <li>Style only: no live camera AR</li>
+      </ul>
+      <p class="src" style="margin-top:8px"><span class="assume">assumption</span> Glow colours not chosen yet. <code>4-spec</code> can propose them.</p>
+    </section>
+    <section class="card">
+      <h2>The Safety Net</h2>
+      <p class="src">For every location match: parking, Find my car, and Help.</p>
+      <ol style="margin:0;padding-left:20px">
+        <li>AI guess → you ✓ or say "No"</li>
+        <li>Pick from <b>next best guesses</b> (photos)</li>
+        <li><b>Snap a sign board</b> → match again</li>
+        <li>Pick from a <b>plain list</b> <span class="assume">assumption</span></li>
+      </ol>
+      <p class="src" style="margin-top:8px">No path dead-ends.</p>
+    </section>
+  </div>
+
+  <section style="margin-top:18px">
+    <h2>Features and Acceptance Criteria</h2>
+    <details open><summary>Capturing the Parking Spot</summary><div>
+      <p class="src">Source: <code>scope.md › The POC Boundary</code></p>
+      <ul class="check">
+        <li>Capture opens the camera, and one photo is sent for matching</li>
+        <li>The result shows a floor + zone label and the matched reference photo</li>
+        <li>Readable sign text (e.g. "B1") helps the guess</li>
+        <li>A rough GPS position is saved when available. Missing GPS never blocks or changes the result</li>
+        <li>✓ saves it as Current Parking, and the Home card shows label, photo, and time</li>
+      </ul></div></details>
+    <details><summary>Fixing a Wrong Location</summary><div>
+      <ul class="check">
+        <li>"No, that's wrong" → next best guesses as labelled photos, tap to confirm</li>
+        <li>"None of these" → asks for a photo of a sign board → matches again</li>
+        <li>Still failing → pick from a plain list <span class="assume">assumption</span></li>
+        <li>Every path ends in a confirmed location</li>
+      </ul></div></details>
+    <details><summary>Guiding to a Room</summary><div>
+      <ul class="check">
+        <li>After confirming, the app asks "Where are you going?" and accepts a typed room number</li>
+        <li>Shortest route on the dorm map, one step at a time</li>
+        <li>Each step: area picture with the correct choice highlighted (3 lifts, Lift 2 glowing) + one line ("Take Lift 2 up to Floor 5")</li>
+        <li>Next advances. The final step names the room</li>
+      </ul></div></details>
+    <details><summary>Finding the Car</summary><div>
+      <ul class="check">
+        <li>Find my car → asks for a photo of where you are</li>
+        <li>Locate (with the same fixes) → shortest route to the saved spot</li>
+        <li>Works from any spot on the demo path, not just the room</li>
+        <li>The last step offers Arrived</li>
+      </ul></div></details>
+    <details><summary>Help While Walking</summary><div>
+      <ul class="check">
+        <li>Help on every direction step <span class="assume">assumption</span></li>
+        <li>Help → snap → locate → fresh steps to the same destination</li>
+      </ul></div></details>
+    <details><summary>Arriving and Parking History</summary><div>
+      <ul class="check">
+        <li>Arrived moves Current Parking into history and empties the card</li>
+        <li>History rows show date, time, label, and photo, newest first, view-only</li>
+      </ul></div></details>
+    <details><summary>States</summary><div>
+      <ul class="tight">
+        <li><b>First use:</b> empty card prompting Capture, and an empty history</li>
+        <li><b>No GPS underground:</b> nothing changes for the user</li>
+        <li><b>Unknown room number:</b> "don't know that room", ask again <span class="assume">assumption</span></li>
+        <li><b>Reopen app:</b> current parking and history are still there</li>
+        <li><b>Capture while already parked:</b> <span class="assume">open question</span></li>
+      </ul></div></details>
+  </section>
+
+  <section class="card" style="margin-top:18px">
+    <h2>Decisions you made</h2>
+    <div class="then-now">
+      <div><span class="quote">"Show direction… like real time? like google map?"</span></div>
+      <div class="arrow">→</div>
+      <div>Step-by-step with Next, with the right lift <b>highlighted</b>: "3 lift and showing me which to choose"</div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+    <ul class="tight">
+      <li><b>GPS plays a supporting role only.</b> It stamps a rough position, and the photo decides</li>
+      <li><b>The user always ✓ confirms.</b> The AI never silently decides</li>
+      <li><b>Fix by recognising photos,</b> then a sign-board photo (your idea)</li>
+      <li><b>Arrived</b> ends the trip, and <b>Help</b> re-locates you</li>
+      <li><b>Dark, futuristic AR / game look</b></li>
+    </ul>
+  </section>
+
+  <div class="grid">
+    <section class="card"><span class="tag t-build">Building now</span>
+      <ul class="tight"><li>Home + current parking + history</li><li>Photo match → confirm → safety net</li><li>Room steps with highlights</li><li>Find my car → steps → Arrived</li><li>Help re-locate</li><li>GPS stamp</li><li>Hand-made dorm map + ~10–20 tagged reference photos</li></ul></section>
+    <section class="card"><span class="tag t-defer">Deferred</span>
+      <ul class="tight"><li>Live moving dot (needs tracking)</li><li>Real camera AR arrows</li><li>GPS for floor/bay</li><li>Tap history to re-route</li><li>More buildings / paths</li></ul></section>
+    <section class="card"><span class="tag t-no">Not doing</span>
+      <ul class="tight"><li>GPS indoor guidance</li><li>Beacons / QR stickers</li><li>Photos of landmarks along the way</li><li>Paid AI APIs</li><li>Accounts / sharing</li></ul></section>
+    <section class="card"><span class="tag t-open">Open questions</span>
+      <ul class="tight"><li>Capture while already parked: auto-move to history, or ask first?</li><li>Glow colours</li><li>One photo vs a few frames</li></ul>
+      <p class="src">None of these block <code>4-spec</code>.</p></section>
+  </div>
+  <p class="src" style="margin-top:22px">The canonical version is <code>devpost/prd.md</code>. This page is a visual companion, and it works offline.</p>
+</main>
+<script>
+  const steps = [
+    ["Home", "Capture button, Current Parking card (empty on first use: \"Tap Capture when you park\"), Parking History list.", ["Capture is the main action"]],
+    ["Snap parking", "One photo of the parking spot's surroundings. A rough GPS stamp is saved if available.", ["Missing GPS never blocks anything"]],
+    ["AI guess → ✓", "Matched against the dorm's reference photos plus any sign text. Shows \"B1 · Zone C\" with the matched photo.", ["✓ saves it as Current Parking", "\"No, that's wrong\" → Fix it"]],
+    ["Where are you going?", "Type a room number, e.g. 512.", ["Unknown room → \"don't know that room\", ask again (assumption)"]],
+    ["Steps to room", "Shortest route, one step at a time: area picture with the right lift/door/turn glowing, one line of text, Next.", ["Help on every step → snap → re-locate"]],
+    ["Fix it", "The safety net when the guess is wrong.", ["1. Pick from next best guesses (photos)", "2. \"None of these\" → snap a sign board", "3. Pick from a plain list (assumption)"]],
+    ["Find my car", "Later: tap the button on the Current Parking card.", ["Works from anywhere on the demo path"]],
+    ["Snap where you are", "One photo of your surroundings: corridor, lift lobby, room door.", []],
+    ["AI guess → ✓", "Same matching and the same safety net as parking.", []],
+    ["Steps to car", "Shortest route back, with the same step screens and Help.", ["Help → snap → fresh steps to the car"]],
+    ["Arrived", "Tap Arrived at the car.", ["Parking moves to history", "Current Parking card empties"]]
+  ];
+  const nodes = [...document.querySelectorAll(".node")];
+  const panel = document.getElementById("panel"), count = document.getElementById("count");
+  let cur = 0;
+  function show(i) {
+    cur = (i + steps.length) % steps.length;
+    nodes.forEach(n => n.classList.toggle("active", +n.dataset.i === cur));
+    const [t, d, b] = steps[cur];
+    panel.innerHTML = `<h3>${t}</h3><div>${d}</div>` + (b.length ? `<ul>${b.map(x => `<li>${x}</li>`).join("")}</ul>` : "");
+    count.textContent = `${cur + 1} / ${steps.length}`;
+  }
+  nodes.forEach(n => n.addEventListener("click", () => show(+n.dataset.i)));
+  document.getElementById("prev").onclick = () => show(cur - 1);
+  document.getElementById("next").onclick = () => show(cur + 1);
+  show(0);
+</script>
+</body>
+</html>

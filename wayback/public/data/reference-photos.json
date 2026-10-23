@@ -1,0 +1,15 @@
+[
+  { "file": "carpark-sw-1.jpg", "spotId": "cp-sw" },
+  { "file": "entrance-se-outside.jpg", "spotId": "entrance-se" },
+  { "file": "entrance-se-inside.jpg", "spotId": "entrance-se" },
+  { "file": "hall-1-se.jpg", "spotId": "hall-1-se" },
+  { "file": "lobby-5-lifts.jpg", "spotId": "lobby-5" },
+  { "file": "lobby-5-se-sign.jpg", "spotId": "lobby-5" },
+  { "file": "lobby-5-nw-sign.jpg", "spotId": "lobby-5" },
+  { "file": "se-stair-1.jpg", "spotId": "se-stair-1" },
+  { "file": "se-stair-2.jpg", "spotId": "se-stair-2" },
+  { "file": "se-stair-2-up.jpg", "spotId": "se-stair-2" },
+  { "file": "se-stair-3.jpg", "spotId": "se-stair-3" },
+  { "file": "se-stair-4.jpg", "spotId": "se-stair-4" },
+  { "file": "cube-f6-25-corridor.jpg", "spotId": "cube-f6-25" }
+]

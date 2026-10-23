@@ -1,0 +1,15 @@
+{
+  "building": "USM Desasiswa Tekun · Block M06",
+  "spots": [
+    { "id": "cp-sw", "label": "Car Park · SW Side", "floor": "B2", "type": "parking", "signText": ["MO6", "M06", "TEKUN"] },
+    { "id": "entrance-se", "label": "SE Entrance · Floor 1", "floor": "1", "type": "entrance", "signText": ["DATARAN", "USAHAWAN"] },
+    { "id": "hall-1-se", "label": "Floor 1 · SE Hallway", "floor": "1", "type": "hallway", "signText": ["F2-37", "F2-40", "F2-41"] },
+    { "id": "lobby-5", "label": "Floor 5 · Lift Lobby", "floor": "5", "type": "lobby", "signText": ["ARAS", "F6-25", "F6-40", "F6-09", "F6-24", "F6-01", "F6-08", "F6-41", "F6-48"] },
+    { "id": "se-stair-1", "label": "SE Hallway · Stair 1 (down)", "floor": "5", "type": "hallway", "signText": ["F5-25", "F5-28", "F5-37", "F5-40"] },
+    { "id": "se-stair-2", "label": "SE Hallway · Stair 2 (up)", "floor": "5", "type": "hallway", "signText": ["F6-25", "F6-28", "F6-37", "F6-40"] },
+    { "id": "se-stair-3", "label": "SE Hallway · Stair 3 (up)", "floor": "5", "type": "hallway", "signText": ["F6-29", "F6-32", "F6-33", "F6-36"] },
+    { "id": "se-stair-4", "label": "SE Hallway · Stair 4 (down)", "floor": "5", "type": "hallway", "signText": ["F5-29", "F5-32", "F5-33", "F5-36"] },
+    { "id": "cube-f6-25", "label": "Cube F6-25 – 28", "floor": "6", "type": "cube", "signText": [] }
+  ],
+  "links": []
+}
