@@ -343,13 +343,12 @@ function Scene({
       {route.ahead && <Tube tube={route.ahead} color={GLOW} opacity={0.75} />}
       {route.now && <Tube tube={route.now} color={GLOW} opacity={1} wide />}
 
-      {/* the cube on your route, with its rooms, toilet and stairs */}
+      {/* the cube on your route, with its rooms and toilet */}
       {detail && (
         <group ref={detailGroup}>
           {detail.parts.slabs && <Part geo={detail.parts.slabs} fill="#0E2030" fillOpacity={0.6} edge={GLOW} edgeOpacity={0.35} />}
           {detail.parts.rooms && <Part geo={detail.parts.rooms} fill="#0F3A44" fillOpacity={0.35} edge="#46D9E6" edgeOpacity={0.85} />}
           {detail.parts.toilet && <Part geo={detail.parts.toilet} fill="#26313D" fillOpacity={0.5} edge="#8FA1AD" edgeOpacity={0.7} />}
-          {detail.parts.stairs && <Part geo={detail.parts.stairs} fill={VIOLET} fillOpacity={0.35} edge={VIOLET} edgeOpacity={0.95} />}
           {detail.parts.upper && <Part geo={detail.parts.upper} fill="#1A2633" fillOpacity={0.08} edge="#3A4656" edgeOpacity={0.35} />}
           {detail.parts.target && <Part geo={detail.parts.target} fill={GLOW} fillOpacity={0.4} edge={GLOW} edgeOpacity={1} />}
         </group>
@@ -545,12 +544,12 @@ function mergeBoxes(list: Box[]): { fill: THREE.BufferGeometry; edge: THREE.Buff
 
 type CubeDetail = {
   level: number;
-  parts: Record<"slabs" | "rooms" | "target" | "toilet" | "stairs" | "upper", { fill: THREE.BufferGeometry; edge: THREE.BufferGeometry } | null>;
+  parts: Record<"slabs" | "rooms" | "target" | "toilet" | "upper", { fill: THREE.BufferGeometry; edge: THREE.BufferGeometry } | null>;
 };
 
 /**
  * The cube your route goes into, drawn from the learner's plan: two floors, each with
- * rooms 1–4, the toilet and the stairs (swapped on floor 2), and your room picked out.
+ * rooms 1–4 and the toilet, and your room picked out.
  */
 function cubeDetail(steps: Step[]): CubeDetail | null {
   const ids = steps.flatMap((s) => [s.from, s.to]);
@@ -572,7 +571,7 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
   const angle = (cube.angle * Math.PI) / 180;
   const storey = CUBE_H / 2;
 
-  const groups: Record<keyof CubeDetail["parts"], Box[]> = { slabs: [], rooms: [], target: [], toilet: [], stairs: [], upper: [] };
+  const groups: Record<keyof CubeDetail["parts"], Box[]> = { slabs: [], rooms: [], target: [], toilet: [], upper: [] };
   const area = (x: [number, number], d: [number, number], y: number, h: number): Box => {
     const [cx, cz] = cubePoint(cube, (x[0] + x[1]) / 2, (d[0] + d[1]) / 2);
     return { center: [cx, y + h / 2, cz], size: [(x[1] - x[0]) * PLAN_SCALE.x, h, (d[1] - d[0]) * PLAN_SCALE.d], angle };
@@ -583,17 +582,11 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
     const into = (key: keyof CubeDetail["parts"]) => (floor === 1 ? groups[key] : groups.upper);
     into("slabs").push(area([-PLAN.width / 2, PLAN.width / 2], [0, PLAN.depth], y - 0.15, 0.15));
     for (const part of cubePlan(floor)) {
-      if (part.kind === "stairs") {
-        // One stair inside the cube: up from floor 1 toward the hallway side, arriving on floor 2.
-        if (floor === 2) continue;
-        const mid = (part.x[0] + part.x[1]) / 2;
-        const [a, b] = [cubePoint(cube, mid, part.d[1]), cubePoint(cube, mid, part.d[0])];
-        groups.stairs.push(...flight(a, b, y, storey, (part.x[1] - part.x[0]) * PLAN_SCALE.x, 8));
-      } else {
-        const walls = area(part.x, part.d, y, storey * 0.8);
-        if (part.kind === "room" && part.room === target && floor === 1) groups.target.push(walls);
-        else into(part.kind === "room" ? "rooms" : "toilet").push(walls);
-      }
+      // The only stair drawn is the one from the hallway (learner); the inner stair area is left open.
+      if (part.kind === "stairs") continue;
+      const walls = area(part.x, part.d, y, storey * 0.8);
+      if (part.kind === "room" && part.room === target && floor === 1) groups.target.push(walls);
+      else into(part.kind === "room" ? "rooms" : "toilet").push(walls);
     }
   }
   const parts = Object.fromEntries(
