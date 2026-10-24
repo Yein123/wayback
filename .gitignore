@@ -2,7 +2,6 @@
 .env
 .env.*
 !.env.example
-!.env.local.example
 
 # dependencies
 node_modules/
@@ -30,3 +29,14 @@ next-env.d.ts
 # model cache from the embeddings script
 .cache/
 /reference-inbox/
+
+# hackathon skills and Claude Code tool settings (not part of the app)
+/.agents/
+/.claude/
+/agent/
+/skills-lock.json
+
+# survey working notes and original sign photos (copies used by tests live in tests/fixtures/signs/)
+/wayback/survey-new-places.json
+/wayback/survey-notes.json
+/wayback/survey-signs/
