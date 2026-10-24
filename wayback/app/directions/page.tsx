@@ -304,9 +304,13 @@ function gpsLabel(live: ReturnType<typeof useLiveGps>): string {
   return "GPS";
 }
 
-/** A real photo for the step: what you'll see when you get there, else where you start from. */
+/**
+ * A real photo for the step: what you'll see when you get there, else where you start from. Only the
+ * photos taken facing along the route; survey photos face whichever way the four sides fell (and the
+ * compass is too rough indoors to tell), so they help find you but would show the wrong view here.
+ */
 function photoFor(step: Step): { file: string; caption: string } | null {
-  const at = (id: string) => referencePhotos.find((p) => p.spotId === id)?.file;
+  const at = (id: string) => referencePhotos.find((p) => p.spotId === id && !("side" in p))?.file;
   const ahead = step.to !== step.from ? at(step.to) : undefined;
   if (ahead) return { file: ahead, caption: "LOOK FOR THIS" };
   const here = at(step.from);
