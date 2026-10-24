@@ -26,6 +26,8 @@ describe("readSignText", () => {
   it("reads a door number", () => {
     expect(readSignText("  F7-2O \n")).toMatchObject({ room: "F7-20", floor: "7" });
     expect(readSignText("F 3 - 12")).toMatchObject({ room: "F3-12", floor: "3" });
+    // door plates write it F-6-26
+    expect(readSignText("F-6-26\n“USE NATURAL DAYLICHT")).toMatchObject({ room: "F6-26", floor: "5" });
   });
 
   it("ignores words that only look like room numbers", () => {

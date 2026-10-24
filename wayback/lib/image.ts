@@ -16,6 +16,24 @@ export async function resizePhoto(file: Blob, maxSide = 448, quality = 0.85): Pr
   );
 }
 
+/**
+ * Door plates are white letters on pale yellow: in colour or grey they nearly vanish, but in the blue channel
+ * yellow goes dark and white stays bright. Turns RGBA pixels (in place) into that channel, contrast stretched.
+ */
+export function plateGray(rgba: Uint8ClampedArray | Uint8Array): void {
+  const count = new Array<number>(256).fill(0);
+  for (let i = 2; i < rgba.length; i += 4) count[rgba[i]]++;
+  // stretch between the darkest and brightest 1%, so a few odd pixels don't flatten it
+  const cut = rgba.length / 4 / 100;
+  let lo = 0, hi = 255;
+  for (let n = 0; n + count[lo] <= cut && lo < 254; lo++) n += count[lo];
+  for (let n = 0; n + count[hi] <= cut && hi > lo + 1; hi--) n += count[hi];
+  for (let i = 0; i < rgba.length; i += 4) {
+    const v = Math.max(0, Math.min(255, Math.round(((rgba[i + 2] - lo) * 255) / (hi - lo))));
+    rgba[i] = rgba[i + 1] = rgba[i + 2] = v;
+  }
+}
+
 /** A small JPEG data URL (~20–40 KB) to store inside a Firestore record. */
 export async function makeThumb(file: Blob): Promise<string> {
   const small = await resizePhoto(file, 320, 0.6);

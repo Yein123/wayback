@@ -2,6 +2,7 @@
 // main thread so the screen stays smooth. Built for photos of real signs: small, tilted and on busy walls.
 import Ocr, { ImageRawBase, registerBackend, type ImageRawData, type SizeOption } from "@gutenye/ocr-common";
 import { splitIntoLineImages } from "@gutenye/ocr-common/splitIntoLineImages";
+import { plateGray } from "@/lib/image";
 import { loadOpenCv } from "@/lib/opencv";
 import * as ort from "onnxruntime-web";
 
@@ -55,10 +56,11 @@ function load() {
   return ready;
 }
 
-type Request = { id: number; image: Blob };
+/** `plate`: read the blue channel only, for white-on-yellow door plates. */
+type Request = { id: number; image: Blob; plate?: boolean };
 
 self.onmessage = async (event: MessageEvent<Request>) => {
-  const { id, image } = event.data;
+  const { id, image, plate } = event.data;
   try {
     const ocr = await load();
     const bitmap = await createImageBitmap(image, { imageOrientation: "from-image" });
@@ -68,7 +70,9 @@ self.onmessage = async (event: MessageEvent<Request>) => {
     const ctx = canvas.getContext("2d")!;
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
-    const { texts } = await ocr.detect(ctx.getImageData(0, 0, width, height));
+    const pixels = ctx.getImageData(0, 0, width, height);
+    if (plate) plateGray(pixels.data);
+    const { texts } = await ocr.detect(pixels);
     self.postMessage({ id, lines: texts.map((t) => t.text) });
   } catch (err) {
     self.postMessage({ id, error: err instanceof Error ? err.message : String(err) });

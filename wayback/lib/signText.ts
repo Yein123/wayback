@@ -1,5 +1,5 @@
 // Reading where you are from the words in a photo: floor signs ("ARAS 5 & 6 / LEVEL 5 & 6"), a cube's
-// board ("F6-25 - F6-28"), hallway signs ("F6-25 - F6-40") and door numbers ("F5-03").
+// board ("F6-25 - F6-28"), hallway signs ("F6-25 - F6-40") and door plates ("F5-03", "F-6-26").
 // Pure text rules, tolerant of OCR slips ("RAS5&6", "LEVELS5&6", "F625"); the OCR itself is in readSign.ts.
 import { LIFT_FLOORS } from "@/lib/building";
 
@@ -18,8 +18,8 @@ export type SignRead = {
 const DIGITS: Record<string, string> = { O: "0", o: "0", D: "0", Q: "0", I: "1", l: "1", "|": "1", i: "1", S: "5", s: "5", B: "8", Z: "2", z: "2" };
 const digits = (s: string) => s.replace(/[OoDQIl|iSsBZz]/g, (c) => DIGITS[c]);
 const D = "[0-9OoDQIl|iSsBZz]";
-// F6-25, F 6 - 25, F625 (the dash is often lost)
-const ROOM = `F\\s?(${D})\\s?[-–—~=]?\\s?(${D}{2})(?![0-9])`;
+// F6-25, F 6 - 25, F625 (the dash is often lost), F-6-26 (door plates)
+const ROOM = `F\\s?[-–—~=.]?\\s?(${D})\\s?[-–—~=]?\\s?(${D}{2})(?![0-9])`;
 
 /** Each room floor's lift floor: lobby F reaches rooms on F and F + 1 (the cubes half a floor up). */
 export function liftFloorFor(roomFloor: number): string | undefined {
