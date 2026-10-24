@@ -39,6 +39,9 @@ export function roomGraph(): { spots: Spot[]; links: Link[] } {
     }),
   );
 
+  // Cubes stand in columns, one every half floor; each one's inner stairs reach the cube a floor above.
+  const columns = new Map<string, Spot[]>();
+
   for (const floor of ROOM_FLOORS) {
     const lobby = lobbies.find((l) => l.floor === floor)!;
     const all = cubes(floor);
@@ -76,6 +79,8 @@ export function roomGraph(): { spots: Spot[]; links: Link[] } {
           generated: true,
         };
         spots.push(cube);
+        const column = `${h} ${c.side} ${c.center.map(Math.round).join()}`;
+        columns.set(column, [...(columns.get(column) ?? []), cube]);
         const [up, down] = c.half > 0 ? ["up", "down"] : ["down", "up"];
         const other = c.side === "left" ? "right" : "left";
         both(
@@ -98,6 +103,21 @@ export function roomGraph(): { spots: Spot[]; links: Link[] } {
         });
       }
     }
+  }
+  for (const column of columns.values()) {
+    column.sort((a, b) => a.level! - b.level!);
+    column.forEach((below, i) => {
+      const above = column[i + 1];
+      if (!above || above.level! - below.level! !== 1) return;
+      both(
+        below,
+        above,
+        [`Take the cube's inner stairs up one floor, to cube ${above.label.slice(5)}`, { kind: "stairs", dir: "up", floors: 1 }],
+        [`Take the cube's inner stairs down one floor, to cube ${below.label.slice(5)}`, { kind: "stairs", dir: "down", floors: 1 }],
+        // a full flight, priced so the lifts still win between floors and the stairs win within one stack
+        45,
+      );
+    });
   }
   return { spots, links };
 }

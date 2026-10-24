@@ -7,8 +7,11 @@ import { useEffect, useState } from "react";
 import HudPanel from "@/components/HudPanel";
 import RouteSim, { type SimView } from "@/components/RouteSim";
 import StepDiagram from "@/components/StepDiagram";
-import { useLiveGps } from "@/lib/liveGps";
-import { getSpot, map } from "@/lib/map";
+import CompassArrow from "@/components/CompassArrow";
+import { useCompass } from "@/lib/compass";
+import { mapBearing } from "@/lib/gps";
+import { useAnchors, useLiveGps } from "@/lib/liveGps";
+import { getSpot, map, spotLevel } from "@/lib/map";
 import { endParking } from "@/lib/parkings";
 import { floorChange, shortestPath, toSteps, type Step } from "@/lib/route";
 import { endTrip, setStepIndex, startTrip, useTrip } from "@/lib/trip";
@@ -33,6 +36,9 @@ export default function DirectionsPage() {
   const [gpsOn, setGpsOn] = useState(true);
   const live = useLiveGps(gpsOn);
   const gps = live.state === "fix" ? live.fix : null;
+  // Real directions: the step's compass bearing (the map is turned ~174° from north), against the phone's compass.
+  const compass = useCompass();
+  const anchors = useAnchors();
 
   // Leaving the phone's real full screen (back gesture, Esc) also leaves ours.
   useEffect(() => {
@@ -71,6 +77,17 @@ export default function DirectionsPage() {
   const canSim = steps.every((s) => s.from && s.to);
   const photo = photoFor(step);
   const minutesLeft = Math.max(1, Math.round(secondsLeft(steps, stepIndex) / 60));
+  const bearing = anchors ? stepBearing(step, anchors) : null;
+  const heading = bearing === null ? null : (
+    <div className="flex items-center justify-between gap-2">
+      <CompassArrow bearing={bearing} heading={compass.heading} />
+      {compass.needsPermission && (
+        <button type="button" onClick={compass.enable} className="shrink-0 rounded-lg border border-glow/60 px-3 py-1.5 font-hud text-[10px] tracking-widest text-glow">
+          COMPASS ON
+        </button>
+      )}
+    </div>
+  );
 
   function go(index: number) {
     setPlaying(false);
@@ -262,6 +279,7 @@ export default function DirectionsPage() {
                 {carButton}
               </div>
               <p className="text-lg leading-snug text-ink">{step.text}</p>
+              {heading}
               {controls}
             </div>
           ) : (
@@ -281,6 +299,7 @@ export default function DirectionsPage() {
 
       <HudPanel className="flex flex-col gap-3">
         <p className="text-lg leading-snug text-ink">{step.text}</p>
+        {heading}
         {photo ? (
           <figure className="flex flex-col gap-1.5">
             {/* eslint-disable-next-line @next/next/no-img-element -- local reference photo, no resizing needed */}
@@ -302,6 +321,13 @@ function gpsLabel(live: ReturnType<typeof useLiveGps>): string {
   if (live.state === "waiting") return "GPS …";
   if (live.state === "unavailable") return "GPS ✕";
   return "GPS";
+}
+
+/** Which way a walking step goes, as a real compass bearing; null for lifts, cube stairs and arriving. */
+function stepBearing(step: Step, anchors: Parameters<typeof mapBearing>[1]): number | null {
+  const [a, b] = [getSpot(step.from), getSpot(step.to)];
+  if (!a || !b || Math.abs(spotLevel(a) - spotLevel(b)) >= 1) return null;
+  return mapBearing([b.pos[0] - a.pos[0], b.pos[1] - a.pos[1]], anchors);
 }
 
 /**

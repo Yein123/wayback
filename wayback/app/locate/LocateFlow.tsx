@@ -9,6 +9,7 @@ import ModelStatusLine from "@/components/ModelStatusLine";
 import SnapSides, { SIDES } from "@/components/SnapSides";
 import { getGps, type Gps } from "@/lib/gps";
 import { makeThumb } from "@/lib/image";
+import { LIFT_FLOORS } from "@/lib/building";
 import { getSpot } from "@/lib/map";
 import { matchPhotos } from "@/lib/matcher";
 import { getCurrentParking, saveParking } from "@/lib/parkings";
@@ -184,7 +185,11 @@ function Result({
   onConfirm: (guess: SpotGuess) => void;
 }) {
   const top = step.guesses[0];
-  const spot = getSpot(top.spotId);
+  // Every floor's lift lobby looks the same (and GPS can't tell floors), so a lobby match asks which floor.
+  const atLifts = getSpot(top.spotId)?.type === "lobby";
+  const [floor, setFloor] = useState(() => getSpot(top.spotId)?.floor ?? "1");
+  const chosen = atLifts ? { ...top, spotId: `lobby-${floor.toLowerCase()}` } : top;
+  const spot = getSpot(chosen.spotId);
 
   return (
     <section className="flex flex-col gap-4">
@@ -212,9 +217,26 @@ function Result({
           </figure>
         </div>
       </HudPanel>
+      {atLifts && (
+        <HudPanel tone="amber" className="flex flex-col gap-3">
+          <p className="text-sm text-ink">The lift lobbies all look alike. Which floor are you on? (Check the number by the lift.)</p>
+          <div className="flex gap-1.5">
+            {LIFT_FLOORS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFloor(f)}
+                className={`flex-1 rounded-lg border py-2 font-hud text-xs ${f === floor ? "border-glow bg-glow/20 text-glow" : "border-edge text-muted"}`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </HudPanel>
+      )}
       <button
         type="button"
-        onClick={() => onConfirm(top)}
+        onClick={() => onConfirm(chosen)}
         className="rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
       >
         ✓ CONFIRM

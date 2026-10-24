@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compassName, latLngName } from "@/lib/compass";
-import { gpsToMap } from "@/lib/gps";
+import { gpsToMap, mapBearing } from "@/lib/gps";
 
 describe("gpsToMap", () => {
   // Three made-up anchors near USM, with the map turned 30° and in metres from the lobby.
@@ -38,6 +38,17 @@ describe("gpsToMap", () => {
     ];
     const here = gpsToMap({ ...at(15, 20), accuracy: 6 }, rough)!;
     expect(here.accuracy).toBeGreaterThan(12);
+  });
+
+  it("turns a direction on the turned map into a real compass bearing", () => {
+    const dir = (east: number, south: number): [number, number] => {
+      const [a, b] = [toMap(east, south), toMap(0, 0)];
+      return [a[0] - b[0], a[1] - b[1]];
+    };
+    expect(mapBearing(dir(0, -10), anchors)).toBeCloseTo(0, 0); // north
+    expect(mapBearing(dir(10, 0), anchors)).toBeCloseTo(90, 0); // east
+    expect(mapBearing(dir(-10, 10), anchors)).toBeCloseTo(225, 0); // south-west
+    expect(mapBearing(dir(10, 0), anchors.slice(0, 1))).toBeNull();
   });
 
   it("is off with fewer than two anchors", () => {

@@ -31,6 +31,13 @@ describe("findRoom", () => {
     expect(getSpot(path.at(-1)!)!.room).toBe("F3-12");
   });
 
+  it("walks between stacked rooms by stairs, not the lifts", () => {
+    // F8 and F7 share floor 7's hallway: half a flight down, then half a flight down again
+    expect(spotsOn("room-f8-20", "room-f7-20")).not.toContain("lobby-7");
+    // F6 (off floor 5) to F7 (off floor 7): up the cube's inner stairs
+    expect(spotsOn("room-f6-26", "room-f7-26")).toEqual(["room-f6-26", "cube-f6-25", "cube-f7-25", "room-f7-26"]);
+  });
+
   it("returns null for a room the map doesn't know", () => {
     expect(findRoom("F9-99")).toBeNull();
     expect(findRoom("hello")).toBeNull();
