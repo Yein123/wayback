@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wayback App Map</title>
+<style>
+  :root { --bg: #0b1020; --panel: #121a30; --ink: #e6ecff; --muted: #9aa6c8; --glow: #3ee6f2; --violet: #a88bff; --amber: #f2b33e; --edge: #26324f; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f6f8fc; --panel: #ffffff; --ink: #141a2e; --muted: #56607a; --glow: #0a8c99; --violet: #6a4fd6; --amber: #a86a00; --edge: #d5dbe8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; color: var(--glow); letter-spacing: .04em; }
+  h2 { font-size: 1.1rem; margin: 32px 0 8px; color: var(--glow); }
+  p, li { color: var(--ink); }
+  .muted { color: var(--muted); font-size: .9rem; }
+  code { font: .88em ui-monospace, Consolas, monospace; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; padding: 1px 4px; overflow-wrap: anywhere; }
+  .panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+  ol.route > li { margin-bottom: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  td { border-top: 1px solid var(--edge); padding: 8px 6px; vertical-align: top; }
+  td:first-child { width: 42%; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font: 13px system-ui, sans-serif; fill: var(--ink); }
+  svg .box { fill: var(--panel); stroke: var(--glow); stroke-width: 1.5; }
+  svg .alt { stroke: var(--violet); }
+  svg .line { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+  svg .small { font-size: 11px; fill: var(--muted); }
+  details { margin: 8px 0; }
+  summary { cursor: pointer; color: var(--violet); }
+  a { color: var(--glow); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Wayback · App Map</h1>
+  <p class="muted">A take-home guide to the code. It's a snapshot of commit <code>94212b5</code> (plus the README update after it) and can drift as the code changes.</p>
+
+  <h2>What the app does</h2>
+  <p>Wayback is a phone web app for Block M06, Desasiswa Tekun, USM, a building where GPS can't tell floors and every hallway looks alike. You snap the sides around you, and it works out where you are. Then it walks you step by step to a room, or back to your car.</p>
+  <div class="panel">
+    <ul>
+      <li><strong>Locate:</strong> a photo match (CLIP, in the browser), sign reading (PaddleOCR, in the browser) and a GPS pin.</li>
+      <li><strong>Route:</strong> a map of spots and links (<code>public/data/dorm-map.json</code> plus generated rooms), shortest path, one step per link.</li>
+      <li><strong>Directions:</strong> a step picture, a compass arrow, and a 3D building with your route.</li>
+      <li><strong>Firebase:</strong> stores your parking and Survey uploads, and hosts the site.</li>
+    </ul>
+  </div>
+
+  <h2>One action, end to end: “Where am I?” → directions</h2>
+  <svg viewBox="0 0 720 300" role="img" aria-labelledby="flowTitle">
+    <title id="flowTitle">Snapping photos leads to the photo match and sign reading, both feed the result screen, and confirming starts the route and the directions screen.</title>
+    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="color:var(--muted)"/></marker></defs>
+    <rect class="box" x="10" y="115" width="140" height="60" rx="10"/>
+    <text x="80" y="140" text-anchor="middle">Snap photos</text>
+    <text class="small" x="80" y="160" text-anchor="middle">LocateFlow · addShot</text>
+
+    <rect class="box" x="200" y="30" width="170" height="60" rx="10"/>
+    <text x="285" y="55" text-anchor="middle">Photo match (CLIP)</text>
+    <text class="small" x="285" y="75" text-anchor="middle">lib/matcher.ts · matchPhotos</text>
+
+    <rect class="box alt" x="200" y="200" width="170" height="60" rx="10"/>
+    <text x="285" y="225" text-anchor="middle">Sign reading (OCR)</text>
+    <text class="small" x="285" y="245" text-anchor="middle">lib/readSign.ts · readSign</text>
+
+    <rect class="box" x="420" y="115" width="140" height="60" rx="10"/>
+    <text x="490" y="140" text-anchor="middle">Result + ✓ CONFIRM</text>
+    <text class="small" x="490" y="160" text-anchor="middle">LocateFlow · Result</text>
+
+    <rect class="box" x="600" y="115" width="110" height="60" rx="10"/>
+    <text x="655" y="140" text-anchor="middle">Directions</text>
+    <text class="small" x="655" y="160" text-anchor="middle">lib/route.ts</text>
+
+    <path class="line" d="M150,135 C175,110 180,70 198,62"/>
+    <path class="line" d="M150,155 C175,180 180,220 198,228"/>
+    <path class="line" d="M370,60 C395,70 400,120 418,135"/>
+    <path class="line" d="M370,230 C395,220 400,170 418,155"/>
+    <path class="line" d="M560,145 L598,145"/>
+  </svg>
+
+  <h2>Reference route through the code</h2>
+  <p class="muted">A reference route, not a tour you've done. Search for each anchor in your editor.</p>
+  <ol class="route">
+    <li><strong><code>wayback/app/locate/LocateFlow.tsx</code>, search <code>runMatch</code>.</strong> Each photo you snap starts a sign reading straight away (<code>addShot</code>). <code>runMatch</code> runs the photo match, then keeps the screen on “READING SIGNS…” until every reading is done.</li>
+    <li><strong><code>wayback/lib/signText.ts</code>, search <code>readSignText</code>.</strong> Turns the words the OCR read into a place: a door plate (<code>F-6-26</code>) becomes a room, a cube board (<code>F6-25 - F6-28</code>) a cube, an ARAS sign a floor. These are plain text rules, so <code>tests/signText.test.ts</code> can check them quickly.</li>
+    <li><strong><code>wayback/app/locate/LocateFlow.tsx</code>, search <code>function Result</code>.</strong> Decides where you are: what you typed wins, then the sign, then the photo match. A cube board puts you at the stair corridor (<code>boardSpot</code>). ✓ CONFIRM calls <code>go</code>, which runs <code>shortestPath</code> and <code>toSteps</code> from <code>wayback/lib/route.ts</code> and opens the directions.</li>
+  </ol>
+
+  <h2>To change this, start here</h2>
+  <table>
+    <tr><td>A walking instruction or a link between spots</td><td><code>wayback/public/data/dorm-map.json</code> (hand-mapped) and <code>wayback/lib/rooms.ts</code> (generated rooms and cubes)</td></tr>
+    <tr><td>A new kind of sign to read</td><td><code>wayback/lib/signText.ts</code>, plus a case in <code>wayback/tests/signText.test.ts</code></td></tr>
+    <tr><td>A sign photo that isn't read</td><td>Add it to <code>wayback/tests/fixtures/signs/</code>, add a line to <code>wayback/tests/readSign.test.ts</code>, run <code>npm run check:ocr</code></td></tr>
+    <tr><td>The compass arrow</td><td><code>wayback/components/CompassArrow.tsx</code> and <code>wayback/lib/compass.ts</code> (<code>ON_COURSE</code> = 20°)</td></tr>
+    <tr><td>The directions screen buttons</td><td><code>wayback/app/directions/page.tsx</code></td></tr>
+    <tr><td>Survey mode (snapping points with GPS)</td><td><code>wayback/app/survey/page.tsx</code>, <code>wayback/lib/survey.ts</code></td></tr>
+    <tr><td>Upload a building's floor plans (still rough)</td><td><code>wayback/app/building/BuildingView.tsx</code></td></tr>
+  </table>
+
+  <h2>A practice to reuse</h2>
+  <div class="panel">
+    <p><strong>Turn “it doesn't work on my photo” into a saved test with the real photo.</strong> The cube board and the white-on-yellow door plates weren't read at first. Each photo was saved in <code>wayback/tests/fixtures/signs/</code> along with the answer it should give, in <code>wayback/tests/readSign.test.ts</code>. That's how the switch from Tesseract to PaddleOCR, and the blue-channel second pass for door plates, could be proven on all 8 photos instead of guessed.</p>
+    <p>On any project with an agent: when something fails, hand over the real failing input and agree on what the right answer looks like. Then the fix can be checked, and it stays checked later.</p>
+  </div>
+
+  <h2>Run it again</h2>
+  <div class="panel">
+    <p>Live: <a href="https://wayback-m06-1626.web.app">wayback-m06-1626.web.app</a>. It only gives real results at M06.</p>
+    <p>Locally: <code>cd wayback</code>, <code>npm install</code>, copy <code>.env.local.example</code> to <code>.env.local</code> and fill in the Firebase values, then <code>npm run dev</code> and open <code>http://localhost:3000</code>.</p>
+    <details><summary>Checks and deploy</summary>
+      <p><code>npm test</code> runs the fast tests. <code>npm run check:ocr</code> reads the real sign photos. <code>npm run build</code> then <code>firebase deploy --only hosting</code> publishes the site.</p>
+    </details>
+  </div>
+</main>
+</body>
+</html>

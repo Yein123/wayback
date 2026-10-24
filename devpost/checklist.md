@@ -89,7 +89,7 @@ Build mode: fast
   Learner check: Set the scale on one of your uploaded floors, draw a hallway and two rooms, open the 3D view, and say whether it matches the plan.
   Commit: `Draw floor outlines and raise them into 3D`
 
-- [ ] **9. Open Wayback on your phone at the dorm**
+- [x] **9. Open Wayback on your phone at the dorm**
   Becomes usable: A real `https://` link that opens on your phone, uses the phone camera, runs the AI matching (four photos) and the 3D view on the phone itself, and has the GPS pin switched on.
   Why now: Everything you asked for is in, so this tests it for real. CLIP (four photos) plus the 3D view on a phone is the biggest unknown left, and the dorm visit also collects the GPS anchor readings and settles the open building details (which cubes are mirrored, the way into F6-26).
   PRD ref: `prd.md > The Core Journey` (steps 1–6), `prd.md > Capturing the Parking Spot`
@@ -99,7 +99,7 @@ Build mode: fast
   Learner check: On your phone at the dorm, do the full demo: capture the parking (four sides), go to F6-26, then Find my car from somewhere on the path, follow it back and tap Arrived. Tell me where guesses were wrong, how long matching took, and whether the 3D view stayed smooth.
   Commit: `Add README and deployment notes for phone testing`
 
-- [ ] **10. Fix a wrong guess: other guesses, sign photo, pick from list**
+- [x] **10. Fix a wrong guess: other guesses, sign photo, pick from list**
   Becomes usable: When the guess is wrong you tap "No, that's wrong" and pick from the next best photos; if none fit, you snap a sign and it re-matches using the sign's text; if that still fails, you pick your spot from a list grouped by floor. Visible signs like "F6-25 - F6-28" now boost the right guess on every match.
   Why now: Slice 9 shows how often matching is wrong in real life. This slice makes sure no wrong guess ever leaves you stuck, and adds the sign reading that matters most in identical-looking hallways.
   PRD ref: `prd.md > Fixing a Wrong Location`, `prd.md > Capturing the Parking Spot` (readable sign helps the guess), `prd.md > States and Boundaries` (unsure match)
@@ -111,24 +111,35 @@ Build mode: fast
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 9, on your phone at the dorm (matching accuracy and photo angles can still change the wrong-guess fixes in slice 10)
-- [ ] Final kick-the-tires exploration and feedback completed
+- [x] Early usable behavior explored — after slice 9, on your phone at the dorm (matching accuracy and photo angles can still change the wrong-guess fixes in slice 10)
+- [x] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
+
+Feedback from the learner's phone use at M06, all fixed, deployed and retried by the learner:
+- [x] Directions: smaller DONE button, BACK becomes RESTART on the last step
+- [x] Compass: green ±20° "right way" zone, arrow measured from your GPS spot when it's far enough
+- [x] Lift lobby and sign photos hard to match: read the words (ARAS floor, cube board, door plate), or tap the floor
+- [x] Cube board F6-37 – F6-40 and door plates F-6-26 / F-6-27 not read: PaddleOCR plus a blue-channel pass, checked on 8 real photos (`npm run check:ocr`)
+- [x] Sign wins over the photo match; result waits for the sign reading; "NO SIGN READ" when there's none
+- [x] NOT HERE?: type a room or floor, or retry matching
+- [x] Cube board starts you at the stair corridor below the cube
+- [x] "?" during directions has ‹ BACK TO ROUTE
+Known limitation, left as is: uploading a building's floor plans (slices 7–8, beyond the M06 kernel) still needs work.
 
 - [ ] Final review complete — feedback resolved and learner confirms ready to ship
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: [what actually happened; real document/test/code references; unfinished work if interrupted]
-Route and stops: [actual paths and symbols; guided stops completed, or reference-only route]
-Edit outcome: [tried/kept/reverted/declined/not applicable; verification if changed]
-Reflection: [offered/answered/declined/already covered — personal answer belongs only in the ignored profile]
-Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
+Activity and evidence: Brief recap (learner asked for no extra exercise). Practice connected to the learner's goal of getting better results from an agent: real failing sign photos saved as fixtures with expected answers (`wayback/tests/fixtures/signs/`, `wayback/tests/readSign.test.ts`) proved the OCR switch and the door-plate pass on all 8 photos.
+Route and stops: Reference-only route in the map: `LocateFlow.tsx` `runMatch` → `lib/signText.ts` `readSignText` → `LocateFlow.tsx` `Result` / `go` → `lib/route.ts` `shortestPath`, `toSteps`. Not toured interactively.
+Edit outcome: Not applicable (no exercise; learner declined the wrap-up activity).
+Reflection: Offered once with the map; optional.
+Activity mode: Recap. Map anchors checked against source with grep; not opened in a browser by the agent.
 
 ## Revisions
 
@@ -165,3 +176,6 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Slice 8 extended (learner): AUTO-DETECT SHAPES finds shops (rooms) and lifts on flat-colour plans like mall directories by colour, so every shop stands up as a 3D box without hand drawing (tested on The Exchange TRX: 49–116 shops per floor); a REMOVE mode fixes wrong ones. The building page shows the 3D building and the chosen floor's 2D plan together, in sync (learner: 3D is for navigating, the 2D plan is for surveying). Floors in 3D are spread further apart than real life so a wide mall doesn't look like one layer.
 - Slice 9 hosted on Firebase Hosting (static export, `npx firebase deploy --only hosting`, https://wayback-m06-1626.web.app) instead of Vercel — the project already used Firebase for Firestore and anonymous sign-in, so one service covers both and no env vars need copying to Vercel. Pushing to GitHub moves to `6-ship`, where the repository is made public anyway.
 - Slice 9 mechanical check (deployed site): Home, `/locate`, `/data/embeddings.json`, `/data/dorm-map.json` and a reference photo all return 200; in Chrome on the live site, one car park photo matched Car Park · SW Side (92%) in about 20 s including the sign reading, with no console errors.
+- Slice 9: Survey mode (pin your spot on the floor plan, GPS, four sides, live upload) was built in slice 7 and used at M06 for the reference photos and GPS anchors. The learner's phone use at the dorm is the slice 9 learner check and the early hands-on checkpoint.
+- Slice 10 rebuilt around reading signs, as the learner directed during phone testing: PaddleOCR (`@gutenye/ocr-common`, in a Web Worker) instead of Tesseract.js, because Tesseract missed small, tilted and white-on-yellow signs. A read door plate, cube board or ARAS sign wins over the photo match (instead of adding a score bonus), and the result waits for the reading. "NOT HERE?" (type a room or floor, or retry matching) replaces the other-guesses list and the floor-grouped spot list. Verified by `tests/signText.test.ts` and `npm run check:ocr` on 8 real photos.
+- README updated with sign reading and `npm run check:ocr`.

@@ -9,6 +9,7 @@ Wayback is a phone web app. When you park, you snap the four sides around you. A
 ## How it works
 
 - **Matching** (`lib/matcher.ts`, `lib/clip.worker.ts`, `lib/scoring.ts`): CLIP turns each photo into 512 numbers and compares them with pre-computed numbers for every reference photo (`public/data/embeddings.json`). The four sides are averaged per spot, so a spot has to match from several directions. You always confirm with ✓.
+- **Sign reading** (`lib/readSign.ts`, `lib/ocr.worker.ts`, `lib/signText.ts`): free PaddleOCR runs in the browser beside the photo match and reads the words in each photo. A door plate (F-6-26) puts you at that room, a cube's board (F6-25 - F6-28) at the stair corridor below it, and an ARAS sign tells the floor. The sign wins over the photo match; if it's still wrong you can type your place or retry.
 - **GPS pin** (`lib/gps.ts`): when the phone's location is accurate (within ~20 m), spots far from you are ruled out. It never decides the floor, and it's off until GPS anchors are surveyed (`public/data/gps-anchors.json`).
 - **Map** (`public/data/dorm-map.json`): spots (car park, entrances, lobbies, hallway stairs, cube, room) and one-way links with walking costs, instructions, and a diagram for each.
 - **Route** (`lib/route.ts`): Dijkstra's shortest path over the map, turned into one step per link. After a lift or stairs step, the app asks you to confirm the floor.
@@ -36,6 +37,7 @@ Open http://localhost:3000. On a laptop, use the browser's phone view and pick p
 | Command | What it does |
 |---|---|
 | `npm test` | Route, building, scoring and GPS tests (Vitest) |
+| `npm run check:ocr` | Reads the real sign photos in `tests/fixtures/signs/` with PaddleOCR (slow, a few minutes) |
 | `npm run embeddings` | Re-computes `public/data/embeddings.json` after you change the reference photos |
 | `npm run check:match` | Checks that a cropped, darker copy of each reference photo still matches its own spot |
 | `npm run import-survey -- pack.json` | Imports a survey pack (from Survey mode) as reference photos and GPS anchors |
