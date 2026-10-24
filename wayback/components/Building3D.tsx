@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { CUBE, CUBE_ENTRY_X, PLAN, PLAN_SCALE, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube, type CubePart } from "@/lib/building";
+import { CUBE, CUBE_ENTRY_X, PLAN, PLAN_SCALE, cubeParts, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube, type CubePart } from "@/lib/building";
 import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
 import type { Step } from "@/lib/route";
 
@@ -470,14 +470,12 @@ function stairKey(c: Cube, level: number): string {
 function buildLayers(skipStair: string): Layer[] {
   const boxes = new Map<number, Box[]>();
   const add = (level: number, box: Box) => boxes.set(level, [...(boxes.get(level) ?? []), box]);
-  const allCubes = cubes();
-
   for (const floor of FLOORS) {
     const level = floorLevel(floor);
     const y = level * FH;
     add(level, { center: [0, y - 0.25, 0], size: [16, 0.5, 16] });
     for (const h of HALLWAYS) {
-      const path = hallwayPath(h);
+      const path = hallwayPath(h, floor);
       for (let i = 1; i < path.length; i++) add(level, segment(path[i - 1], path[i], y, 5));
       const [ex, ey] = path.at(-1)!;
       // staircase at the hallway's end: up one flight, landing, back up the other side to the next floor
@@ -492,7 +490,7 @@ function buildLayers(skipStair: string): Layer[] {
 
   for (const floor of FLOORS) {
     const level = floorLevel(floor);
-    for (const c of allCubes) {
+    for (const c of cubes(floor)) {
       const base = (level + c.half) * FH;
       const angle = (c.angle * Math.PI) / 180;
       add(level + c.half, { center: [c.center[0], base + CUBE_H / 2, c.center[1]], size: [CUBE.width, CUBE_H, CUBE.depth], angle });
@@ -593,7 +591,7 @@ function cubeDetail(steps: Step[]): CubeDetail | null {
     // Floor 2 is drawn faintly as one piece so the floor you walk in on reads clearly from above.
     const into = (key: keyof CubeDetail["parts"]) => (floor === 1 ? groups[key] : groups.upper);
     into("slabs").push(area([-PLAN.width / 2, PLAN.width / 2], [0, PLAN.depth], y - 0.15, 0.15));
-    for (const part of cubePlan(floor)) {
+    for (const part of cubeParts(cube, floor)) {
       // The only stair drawn is the one from the hallway (learner); the inner stair area is left open.
       if (part.kind === "stairs") continue;
       const walls = area(part.x, part.d, y, storey * 0.8);

@@ -48,7 +48,12 @@ export function gpsToMap(fix: Gps, anchors: GpsAnchor[]): { x: number; y: number
   }
   if (den === 0) return null;
   const [ar, ai] = [re / den, im / den];
-  const [px, py] = ground(fix.lat, fix.lng);
-  const [dx, dy] = [px - gm[0], py - gm[1]];
-  return { x: mm[0] + ar * dx - ai * dy, y: mm[1] + ai * dx + ar * dy, accuracy: fix.accuracy * Math.hypot(ar, ai) };
+  const place = ([gx, gy]: [number, number]): [number, number] => {
+    const [dx, dy] = [gx - gm[0], gy - gm[1]];
+    return [mm[0] + ar * dx - ai * dy, mm[1] + ai * dx + ar * dy];
+  };
+  // The anchors' own readings are rough too: how far the fit misses them adds to the uncertainty.
+  const miss = n > 2 ? Math.sqrt(g.reduce((s, p, i) => s + Math.hypot(place(p)[0] - m[i][0], place(p)[1] - m[i][1]) ** 2, 0) / (n - 2)) : 0;
+  const [x, y] = place(ground(fix.lat, fix.lng));
+  return { x, y, accuracy: Math.hypot(fix.accuracy * Math.hypot(ar, ai), miss) };
 }

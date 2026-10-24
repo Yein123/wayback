@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CUBE_ENTRY_X, cubePlan, cubePoint, cubes, FLOORS, floorLevel, hallwayPath, levelName, type Cube } from "@/lib/building";
+import { CUBE_ENTRY_X, cubePlan, cubeParts, cubePoint, cubes, FLOORS, floorLevel, hallwayPath, levelName, roomNumber, type Cube } from "@/lib/building";
+import labels from "./fixtures/survey-labels.json";
 import { getSpot, spotLevel } from "@/lib/map";
 
 describe("building", () => {
@@ -73,5 +74,48 @@ describe("building", () => {
     expect(hallwayPath("NW")[2]).toEqual([-x, -y]);
     expect(hallwayPath("NE")[2]).toEqual([x, -y]);
     expect(hallwayPath("SW")[2]).toEqual([-x, y]);
+  });
+});
+
+describe("the surveyed block (24 Oct)", () => {
+  const center = (c: Cube, p: { x: [number, number]; d: [number, number] }) => cubePoint(c, (p.x[0] + p.x[1]) / 2, (p.d[0] + p.d[1]) / 2);
+  const dist = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
+  it("stops the NW and SW wings after one stack from floor 5 up", () => {
+    expect(cubes("3")).toHaveLength(32);
+    expect(cubes("5")).toHaveLength(24);
+    expect(cubes("5").some((c) => (c.hallway === "NW" || c.hallway === "SW") && c.stair > 2)).toBe(false);
+    // the NW end stair was pinned at -34.7, -26.3
+    expect(dist(hallwayPath("NW", "5").at(-1)!, [-34.7, -26.3])).toBeLessThan(1);
+    expect(hallwayPath("NW", "3")).toEqual(hallwayPath("NW"));
+  });
+
+  it("numbers every room the way the doors were read on floors 3 and 5", () => {
+    // a few spots carry several labels from one pin, and F3-08 was typed twice; those can't say which room is which
+    const pins = labels.filter((l) => l.note !== "stair");
+    const unclear = (l: (typeof pins)[number]) => pins.some((m) => m !== l && (m.pos.join() === l.pos.join() || m.note === l.note));
+    let checked = 0;
+    for (const l of pins.filter((l) => !unclear(l))) {
+      const upper = l.note.slice(1, l.note.indexOf("-")) !== l.floor;
+      const rooms = cubes(l.floor)
+        .filter((c) => c.half > 0 === upper)
+        .flatMap((c) => cubePlan(1).filter((p) => p.kind === "room").map((p) => ({ c, room: p.room!, d: dist(center(c, p), l.pos) })));
+      const nearest = rooms.sort((a, b) => a.d - b.d)[0];
+      expect(roomNumber(l.floor, nearest.c, nearest.room), `pin at ${l.pos}`).toBe(l.note);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(100);
+    expect(cubes("5").flatMap((c) => [1, 2, 3, 4].map((r) => roomNumber("5", c, r))).filter((n) => n.startsWith("F5-")).sort().at(-1)).toBe("F5-48");
+  });
+
+  it("puts each cube's inner stairs where the survey pinned them", () => {
+    // two NE pins were dropped on the wrong half of their stack (their rooms carry the other floor's numbers)
+    const pins = labels.filter((l) => l.note === "stair");
+    const right = pins.filter((l) => {
+      const half = l.level - floorLevel(l.floor);
+      const parts = cubes(l.floor).filter((c) => c.half === half).flatMap((c) => cubeParts(c, 1).filter((p) => p.kind !== "room").map((p) => ({ kind: p.kind, d: dist(center(c, p), l.pos) })));
+      return parts.sort((a, b) => a.d - b.d)[0].kind === "stairs";
+    });
+    expect(right.length).toBeGreaterThanOrEqual(pins.length - 2);
   });
 });

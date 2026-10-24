@@ -6,10 +6,11 @@ import FloorPlanPicker, { type Pin } from "@/components/FloorPlanPicker";
 import CaptureButton from "@/components/CaptureButton";
 import HudPanel from "@/components/HudPanel";
 import SnapSides, { SIDES } from "@/components/SnapSides";
-import { FLOORS } from "@/lib/building";
+import { cubes, LIFT_FLOORS, roomNumber } from "@/lib/building";
 import { compassName, latLngName, useCompass } from "@/lib/compass";
 import { getGps, type Gps } from "@/lib/gps";
-import { listSurvey, surveyAccess, uploadShot } from "@/lib/survey";
+import SavedSurvey from "@/components/SavedSurvey";
+import { groupSurvey, listSurvey, surveyAccess, uploadShot, type SurveyPlace } from "@/lib/survey";
 
 type Access = { state: "checking" } | { state: "denied"; uid: string } | { state: "ok" } | { state: "error"; message: string };
 
@@ -26,6 +27,8 @@ export default function SurveyPage() {
   const [marks, setMarks] = useState<(string | undefined)[]>([]);
   const [saved, setSaved] = useState(0);
   const [exporting, setExporting] = useState(false);
+  // Everything surveyed so far, loaded when "View saved" is opened.
+  const [places, setPlaces] = useState<SurveyPlace[] | "loading" | "failed" | null>(null);
   const compass = useCompass();
   // A note on one side of the spot, with an optional photo.
   const [noteSide, setNoteSide] = useState(SIDES[0].name);
@@ -117,7 +120,18 @@ export default function SurveyPage() {
     }
   }
 
+  async function toggleSaved() {
+    if (places !== null && places !== "failed") return setPlaces(null);
+    setPlaces("loading");
+    try {
+      setPlaces(groupSurvey(await listSurvey()));
+    } catch {
+      setPlaces("failed");
+    }
+  }
+
   const gpsGood = gps && gps !== "reading" && gps.accuracy <= 20;
+  const savedHere = Array.isArray(places) ? places.filter((p) => p.floor === floor).map((p) => p.pos) : [];
 
   return (
     <main className="flex flex-1 flex-col gap-5">
@@ -143,7 +157,7 @@ export default function SurveyPage() {
           <HudPanel className="flex flex-col gap-3">
             <h2 className="font-hud text-xs tracking-[0.2em] text-muted">1 · WHERE ARE YOU STANDING?</h2>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {FLOORS.map((f) => (
+              {LIFT_FLOORS.map((f) => (
                 <button
                   key={f}
                   type="button"
@@ -157,14 +171,14 @@ export default function SurveyPage() {
                 </button>
               ))}
             </div>
-            <FloorPlanPicker floor={floor} pin={pin} onPin={choosePin} />
+            <FloorPlanPicker key={floor} floor={floor} pin={pin} onPin={choosePin} saved={savedHere} />
             <p className="text-sm text-ink">
               {!pin
                 ? "Tap your position on the plan."
                 : pin.spot
                   ? `Pinned: ${pin.spot.label}`
                   : pin.cube
-                    ? `In the ${pin.cube.hallway} ${pin.cube.stair === 2 || pin.cube.stair === 3 ? "upper" : "lower"} cube (stair ${pin.cube.stair})${pin.cube.room ? `, room ${pin.cube.room}` : ", corridor"}`
+                    ? `In the ${pin.cube.hallway} ${pin.cube.stair === 2 || pin.cube.stair === 3 ? "upper" : "lower"} cube (stair ${pin.cube.stair})${pin.cube.room ? `, room ${pinRoom(floor, pin.cube)}` : ", corridor"}`
                     : `New place on floor ${floor} at ${pin.pos[0]}, ${pin.pos[1]} m`}
             </p>
           </HudPanel>
@@ -253,6 +267,24 @@ export default function SurveyPage() {
 
           <button
             type="button"
+            onClick={toggleSaved}
+            disabled={places === "loading"}
+            className="rounded-2xl border border-violet/60 py-3 font-hud text-xs tracking-[0.2em] text-violet disabled:opacity-50"
+          >
+            {places === "loading" ? "LOADING…" : places === "failed" ? "COULDN'T LOAD · TRY AGAIN" : places ? "HIDE SAVED" : "VIEW SAVED PLACES"}
+          </button>
+          {Array.isArray(places) && (
+            <HudPanel tone="violet" className="flex flex-col gap-3">
+              <h2 className="font-hud text-xs tracking-[0.2em] text-muted">
+                SAVED · {places.length} PLACES · {places.reduce((n, p) => n + p.shots.length, 0)} SHOTS
+              </h2>
+              <p className="text-xs text-muted">Violet rings on the plan above mark this floor&apos;s saved places.</p>
+              <SavedSurvey places={places} floor={floor} />
+            </HudPanel>
+          )}
+
+          <button
+            type="button"
             onClick={exportPack}
             disabled={exporting}
             className="rounded-2xl border border-violet/60 bg-violet/10 py-3 font-hud text-xs tracking-[0.2em] text-violet disabled:opacity-50"
@@ -263,4 +295,10 @@ export default function SurveyPage() {
       )}
     </main>
   );
+}
+
+/** The pinned room's door number, e.g. F6-25. */
+function pinRoom(floor: string, at: NonNullable<Pin["cube"]>): string {
+  const cube = cubes(floor).find((c) => c.hallway === at.hallway && c.side === at.side && c.stair === at.stair);
+  return cube && at.room ? roomNumber(floor, cube, at.room) : String(at.room);
 }

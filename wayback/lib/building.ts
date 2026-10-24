@@ -27,6 +27,8 @@ export type Cube = {
   stairsRight: boolean;
   /** Degrees, the hallway's direction going outward. */
   angle: number;
+  /** Toilet and inner stairs sit the other way round from the learner's plan (survey, 24 Oct). */
+  wcSwapped: boolean;
 };
 
 const SE_END: [number, number] = [62, 48];
@@ -48,16 +50,27 @@ export const PLAN_SCALE = { x: CUBE.width / PLAN.width, d: CUBE.depth / PLAN.dep
 /** Where the hallway stair arrives (plan x): the open corner by the end room on the stair's side. */
 export const CUBE_ENTRY_X = 5.1;
 
-/** The hallway's centre line, lifts outward, through both stacks to the staircase at its far end. */
-export function hallwayPath(h: Hallway): [number, number][] {
-  const [ux, uy] = norm(SE_END);
-  return [[0, 0], ...STACKS.map((t): [number, number] => [ux * t, uy * t]), SE_END].map((p) => flip(h, p as [number, number]));
+// From floor 5 up the NW and SW wings stop after the first stack, at an end staircase (survey, 24 Oct).
+const SHORT_END = 44;
+const shortWing = (h: Hallway, floor?: string) => floor !== undefined && floorLevel(floor) >= 4 && (h === "NW" || h === "SW");
+
+/** How many stacks of cubes a hallway has on a floor (both, if no floor is given). */
+export function stackCount(h: Hallway, floor?: string): number {
+  return shortWing(h, floor) ? 1 : STACKS.length;
 }
 
-export function cubes(): Cube[] {
+/** The hallway's centre line, lifts outward, through its stacks to the staircase at its far end. */
+export function hallwayPath(h: Hallway, floor?: string): [number, number][] {
+  const [ux, uy] = norm(SE_END);
+  const end: [number, number] = shortWing(h, floor) ? [ux * SHORT_END, uy * SHORT_END] : SE_END;
+  return [[0, 0], ...STACKS.slice(0, stackCount(h, floor)).map((t): [number, number] => [ux * t, uy * t]), end].map((p) => flip(h, p as [number, number]));
+}
+
+/** Every cube off a floor's hallways (all of them, if no floor is given). */
+export function cubes(floor?: string): Cube[] {
   const [ux, uy] = norm(SE_END);
   return HALLWAYS.flatMap((h) =>
-    [1, 2, 3, 4].flatMap((stair) => {
+    [1, 2, 3, 4].filter((stair) => stackCount(h, floor) === 2 || stair <= 2).flatMap((stair) => {
       const half = stair === 2 || stair === 3 ? 0.5 : -0.5;
       const t = STACKS[stair <= 2 ? 0 : 1];
       return (["right", "left"] as const).map((side): Cube => {
@@ -66,7 +79,9 @@ export function cubes(): Cube[] {
         const inward = flip(h, [-uy * s, ux * s]);
         const center = flip(h, [ux * t - uy * s * CUBE_GAP, uy * t + ux * s * CUBE_GAP]);
         const stairsRight = stair === 2 || stair === 4;
-        const cube = { hallway: h, stair, side, half, center, inward, stairsRight, door: center, angle: 0 } as Cube;
+        // On these sides the survey found the stairs where the plan has the toilet (NE/SW are mirror images).
+        const wcSwapped = (side === "right") !== (h === "NE" || h === "SW");
+        const cube = { hallway: h, stair, side, half, center, inward, stairsRight, door: center, angle: 0, wcSwapped } as Cube;
         // the stair runs straight in from the hallway's centre line to the cube's entry gap
         const entry = cubePoint(cube, CUBE_ENTRY_X, 0);
         const back = CUBE_GAP - CUBE.depth / 2;
@@ -112,6 +127,46 @@ export function cubePlan(floor: 1 | 2): CubePart[] {
     { kind: "room", room: 2, x: [0.06, 3.35], d: [4.0, 6.1] },
     { kind: "room", room: 1, x: [4.17, 5.94], d: [2.3, 6.1] },
   ];
+}
+
+/** A real cube's plan: the learner's plan, with the toilet and stairs swapped where the survey found them so. */
+export function cubeParts(c: Cube, floor: 1 | 2): CubePart[] {
+  return cubePlan(c.wcSwapped ? (floor === 1 ? 2 : 1) : floor);
+}
+
+/**
+ * A room's door number, e.g. "F5-03", for room 1–4 of a cube off a hallway floor. The lower cubes hold
+ * that floor's rooms and the upper cubes the next floor's. Numbers run round the block from the NW wing
+ * clockwise: out along one side of each wing and back along the other (surveyed on floors 3 and 5).
+ */
+export function roomNumber(floor: string, c: Cube, room: number): string {
+  // How far out from the lifts a room of a cube is, along its hallway.
+  const along = (q: Cube, r: number) => {
+    const p = cubePlan(1).find((p) => p.room === r)!;
+    const [x, y] = cubePoint(q, (p.x[0] + p.x[1]) / 2, (p.d[0] + p.d[1]) / 2);
+    const [ux, uy] = norm(flip(q.hallway, SE_END));
+    return x * ux + y * uy;
+  };
+  const level = floorLevel(floor) + (c.half > 0 ? 1 : 0);
+  let n = 0;
+  for (const h of HALLWAYS) {
+    const first = h === "NW" || h === "SE" ? "left" : "right";
+    for (const side of [first, first === "left" ? "right" : "left"]) {
+      const dir = side === first ? 1 : -1; // walking out, then back
+      // one cube per stack on this side, at the same half as the cube asked about
+      const row = cubes(floor)
+        .filter((q) => q.hallway === h && q.side === side && q.half === c.half)
+        .sort((a, b) => dir * (along(a, 1) - along(b, 1)));
+      for (const q of row) {
+        if (q.hallway === c.hallway && q.side === c.side && q.stair === c.stair) {
+          const order = [1, 2, 3, 4].sort((a, b) => dir * (along(q, a) - along(q, b)));
+          return `F${level >= 0 ? level + 1 : `B${-level}`}-${String(n + order.indexOf(room) + 1).padStart(2, "0")}`;
+        }
+        n += 4;
+      }
+    }
+  }
+  throw new Error(`No ${c.hallway} ${c.side} stair ${c.stair} cube on floor ${floor}`);
 }
 
 /** Floors as stacking levels: B2 → -2, B1 → -1, 1 → 0, 5 → 4, 10 → 9. */

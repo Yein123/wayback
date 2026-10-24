@@ -1,1 +1,92 @@
-[]
+[
+  {
+    "spotId": "cp-se",
+    "lat": 5.3564258,
+    "lng": 100.2918041,
+    "pos": [
+      62,
+      52
+    ],
+    "readings": 1
+  },
+  {
+    "spotId": "walkway-1-east",
+    "lat": 5.3561504,
+    "lng": 100.2917374,
+    "pos": [
+      13.1,
+      -0.4
+    ],
+    "readings": 4
+  },
+  {
+    "spotId": "hall-1-east",
+    "lat": 5.356067,
+    "lng": 100.2921058,
+    "pos": [
+      10.3,
+      1.6
+    ],
+    "readings": 4
+  },
+  {
+    "spotId": "cube-f5-29",
+    "lat": 5.356339,
+    "lng": 100.2916862,
+    "pos": [
+      55,
+      31.5
+    ],
+    "readings": 4
+  },
+  {
+    "spotId": "entrance-b2-west",
+    "lat": 5.356035,
+    "lng": 100.2924191,
+    "pos": [
+      -37.4,
+      0.9
+    ],
+    "readings": 4
+  },
+  {
+    "spotId": "cp-b2-west",
+    "lat": 5.3560233,
+    "lng": 100.2924353,
+    "pos": [
+      -46.1,
+      1.9
+    ],
+    "readings": 2
+  },
+  {
+    "spotId": "b2-stairs-m09",
+    "lat": 5.3560154,
+    "lng": 100.2923476,
+    "pos": [
+      15.4,
+      -0.8
+    ],
+    "readings": 1
+  },
+  {
+    "spotId": "b2-stairs-south",
+    "lat": 5.3560253,
+    "lng": 100.2921592,
+    "pos": [
+      1.1,
+      14.3
+    ],
+    "readings": 1
+  },
+  {
+    "spotId": "b2-south-lounge",
+    "lat": 5.356099,
+    "lng": 100.2920204,
+    "pos": [
+      -1.3,
+      29.8
+    ],
+    "readings": 3
+  }
+]

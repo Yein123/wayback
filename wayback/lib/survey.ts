@@ -41,13 +41,42 @@ export async function uploadShot(shot: Omit<SurveyShot, "photo">, file: Blob | n
 }
 
 /** Everything surveyed so far, for the import pack. */
-export async function listSurvey(): Promise<(SurveyShot & { id: string; createdAt: string | null })[]> {
+export async function listSurvey(): Promise<SavedShot[]> {
   const { db } = await firebase();
   const snap = await getDocs(query(collection(db, "survey"), orderBy("createdAt")));
   return snap.docs.map((d) => {
     const v = d.data();
     return { id: d.id, ...(v as SurveyShot), createdAt: v.createdAt?.toDate?.().toISOString() ?? null };
   });
+}
+
+export type SavedShot = SurveyShot & { id: string; createdAt: string | null };
+
+/** One surveyed place: every shot pinned at the same spot (or the same new-place pin) on a floor. */
+export type SurveyPlace = {
+  key: string;
+  spotId: string | null;
+  floor: string;
+  pos: [number, number];
+  shots: SavedShot[];
+  /** The most accurate GPS reading taken there, if any. */
+  gps: Gps | null;
+  last: string | null;
+};
+
+/** Groups saved shots into places, newest first. Setup test records are left out, as the import does. */
+export function groupSurvey(shots: SavedShot[]): SurveyPlace[] {
+  const places = new Map<string, SurveyPlace>();
+  for (const s of shots) {
+    if (s.note?.startsWith("TEST note")) continue;
+    const key = `${s.floor}|${s.spotId ?? s.pos.join(",")}`;
+    const p = places.get(key) ?? { key, spotId: s.spotId, floor: s.floor, pos: s.pos, shots: [], gps: null, last: null };
+    p.shots.push(s);
+    if (s.gps && (!p.gps || s.gps.accuracy < p.gps.accuracy)) p.gps = s.gps;
+    if (s.createdAt && (!p.last || s.createdAt > p.last)) p.last = s.createdAt;
+    places.set(key, p);
+  }
+  return [...places.values()].sort((a, b) => (b.last ?? "").localeCompare(a.last ?? ""));
 }
 
 function toDataUrl(blob: Blob): Promise<string> {

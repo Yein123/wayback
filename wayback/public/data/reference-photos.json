@@ -1,15 +1,376 @@
 [
-  { "file": "carpark-sw-1.jpg", "spotId": "cp-sw" },
-  { "file": "entrance-se-outside.jpg", "spotId": "entrance-se" },
-  { "file": "entrance-se-inside.jpg", "spotId": "entrance-se" },
-  { "file": "hall-1-se.jpg", "spotId": "hall-1-se" },
-  { "file": "lobby-5-lifts.jpg", "spotId": "lobby-5" },
-  { "file": "lobby-5-se-sign.jpg", "spotId": "lobby-5" },
-  { "file": "lobby-5-nw-sign.jpg", "spotId": "lobby-5" },
-  { "file": "se-stair-1.jpg", "spotId": "se-stair-1" },
-  { "file": "se-stair-2.jpg", "spotId": "se-stair-2" },
-  { "file": "se-stair-2-up.jpg", "spotId": "se-stair-2" },
-  { "file": "se-stair-3.jpg", "spotId": "se-stair-3" },
-  { "file": "se-stair-4.jpg", "spotId": "se-stair-4" },
-  { "file": "cube-f6-25-corridor.jpg", "spotId": "cube-f6-25" }
+  {
+    "file": "carpark-sw-1.jpg",
+    "spotId": "cp-sw"
+  },
+  {
+    "file": "entrance-se-outside.jpg",
+    "spotId": "entrance-se"
+  },
+  {
+    "file": "entrance-se-inside.jpg",
+    "spotId": "entrance-se"
+  },
+  {
+    "file": "hall-1-se.jpg",
+    "spotId": "hall-1-se"
+  },
+  {
+    "file": "lobby-5-lifts.jpg",
+    "spotId": "lobby-5"
+  },
+  {
+    "file": "lobby-5-se-sign.jpg",
+    "spotId": "lobby-5"
+  },
+  {
+    "file": "lobby-5-nw-sign.jpg",
+    "spotId": "lobby-5"
+  },
+  {
+    "file": "se-stair-1.jpg",
+    "spotId": "se-stair-1"
+  },
+  {
+    "file": "se-stair-2.jpg",
+    "spotId": "se-stair-2"
+  },
+  {
+    "file": "se-stair-2-up.jpg",
+    "spotId": "se-stair-2"
+  },
+  {
+    "file": "se-stair-3.jpg",
+    "spotId": "se-stair-3"
+  },
+  {
+    "file": "se-stair-4.jpg",
+    "spotId": "se-stair-4"
+  },
+  {
+    "file": "cube-f6-25-corridor.jpg",
+    "spotId": "cube-f6-25"
+  },
+  {
+    "file": "survey-se-stair-2-front-djDboF.jpg",
+    "spotId": "se-stair-2",
+    "side": "FRONT",
+    "heading": null,
+    "surveyed": "2026-10-23T16:07:20.830Z"
+  },
+  {
+    "file": "survey-se-stair-2-front-C3NfF5.jpg",
+    "spotId": "se-stair-2",
+    "side": "FRONT",
+    "heading": null,
+    "surveyed": "2026-10-24T04:57:02.846Z"
+  },
+  {
+    "file": "survey-se-stair-2-right-Y4nxCm.jpg",
+    "spotId": "se-stair-2",
+    "side": "RIGHT",
+    "heading": null,
+    "surveyed": "2026-10-24T04:57:14.289Z"
+  },
+  {
+    "file": "survey-se-stair-2-back-H4SJmC.jpg",
+    "spotId": "se-stair-2",
+    "side": "BACK",
+    "heading": null,
+    "surveyed": "2026-10-24T04:57:22.759Z"
+  },
+  {
+    "file": "survey-se-stair-2-left-Pt99Sy.jpg",
+    "spotId": "se-stair-2",
+    "side": "LEFT",
+    "heading": null,
+    "surveyed": "2026-10-24T04:57:34.698Z"
+  },
+  {
+    "file": "survey-cp-se-front-XCwZlN.jpg",
+    "spotId": "cp-se",
+    "side": "FRONT",
+    "heading": 355,
+    "surveyed": "2026-10-24T05:01:03.775Z"
+  },
+  {
+    "file": "survey-walkway-1-east-front-AUkJyP.jpg",
+    "spotId": "walkway-1-east",
+    "side": "FRONT",
+    "heading": 127,
+    "surveyed": "2026-10-24T05:07:34.113Z"
+  },
+  {
+    "file": "survey-walkway-1-east-right-S6aw9E.jpg",
+    "spotId": "walkway-1-east",
+    "side": "RIGHT",
+    "heading": 120,
+    "surveyed": "2026-10-24T05:07:49.291Z"
+  },
+  {
+    "file": "survey-walkway-1-east-back-pTIRwo.jpg",
+    "spotId": "walkway-1-east",
+    "side": "BACK",
+    "heading": 95,
+    "surveyed": "2026-10-24T05:07:59.320Z"
+  },
+  {
+    "file": "survey-walkway-1-east-left-V2a4gF.jpg",
+    "spotId": "walkway-1-east",
+    "side": "LEFT",
+    "heading": 74,
+    "surveyed": "2026-10-24T05:08:08.478Z"
+  },
+  {
+    "file": "survey-hall-1-east-front-nYJCJ6.jpg",
+    "spotId": "hall-1-east",
+    "side": "FRONT",
+    "heading": 112,
+    "surveyed": "2026-10-24T05:09:55.213Z"
+  },
+  {
+    "file": "survey-hall-1-east-right-CzWcrz.jpg",
+    "spotId": "hall-1-east",
+    "side": "RIGHT",
+    "heading": 166,
+    "surveyed": "2026-10-24T05:10:03.840Z"
+  },
+  {
+    "file": "survey-hall-1-east-back-xYYZ2R.jpg",
+    "spotId": "hall-1-east",
+    "side": "BACK",
+    "heading": 26,
+    "surveyed": "2026-10-24T05:10:12.746Z"
+  },
+  {
+    "file": "survey-hall-1-east-left-jjebj0.jpg",
+    "spotId": "hall-1-east",
+    "side": "LEFT",
+    "heading": 73,
+    "surveyed": "2026-10-24T05:10:26.626Z"
+  },
+  {
+    "file": "survey-cube-f5-29-front-U8Dd2t.jpg",
+    "spotId": "cube-f5-29",
+    "side": "FRONT",
+    "heading": 275,
+    "surveyed": "2026-10-24T06:55:29.998Z"
+  },
+  {
+    "file": "survey-cube-f5-29-right-iyYe20.jpg",
+    "spotId": "cube-f5-29",
+    "side": "RIGHT",
+    "heading": 177,
+    "surveyed": "2026-10-24T06:55:40.227Z"
+  },
+  {
+    "file": "survey-cube-f5-29-back-TQ6kHZ.jpg",
+    "spotId": "cube-f5-29",
+    "side": "BACK",
+    "heading": 24,
+    "surveyed": "2026-10-24T06:55:47.542Z"
+  },
+  {
+    "file": "survey-cube-f5-29-left-XTHruk.jpg",
+    "spotId": "cube-f5-29",
+    "side": "LEFT",
+    "heading": 166,
+    "surveyed": "2026-10-24T06:55:58.947Z"
+  },
+  {
+    "file": "survey-b2-west-1-front-rK9nW8.jpg",
+    "spotId": "b2-west-1",
+    "side": "FRONT",
+    "heading": 159,
+    "surveyed": "2026-10-24T07:58:47.640Z"
+  },
+  {
+    "file": "survey-b2-west-1-right-QdO5Vq.jpg",
+    "spotId": "b2-west-1",
+    "side": "RIGHT",
+    "heading": 187,
+    "surveyed": "2026-10-24T07:58:53.807Z"
+  },
+  {
+    "file": "survey-b2-west-1-back-cHOheJ.jpg",
+    "spotId": "b2-west-1",
+    "side": "BACK",
+    "heading": 238,
+    "surveyed": "2026-10-24T07:59:00.135Z"
+  },
+  {
+    "file": "survey-b2-west-1-left-yiPvHD.jpg",
+    "spotId": "b2-west-1",
+    "side": "LEFT",
+    "heading": 246,
+    "surveyed": "2026-10-24T07:59:07.165Z"
+  },
+  {
+    "file": "survey-b2-west-2-front-wpgF1c.jpg",
+    "spotId": "b2-west-2",
+    "side": "FRONT",
+    "heading": 74,
+    "surveyed": "2026-10-24T07:59:43.895Z"
+  },
+  {
+    "file": "survey-b2-west-2-right-GaVWM3.jpg",
+    "spotId": "b2-west-2",
+    "side": "RIGHT",
+    "heading": 86,
+    "surveyed": "2026-10-24T07:59:49.851Z"
+  },
+  {
+    "file": "survey-b2-west-2-back-D9bDOc.jpg",
+    "spotId": "b2-west-2",
+    "side": "BACK",
+    "heading": 114,
+    "surveyed": "2026-10-24T07:59:57.642Z"
+  },
+  {
+    "file": "survey-b2-west-2-left-PvjA3a.jpg",
+    "spotId": "b2-west-2",
+    "side": "LEFT",
+    "heading": 124,
+    "surveyed": "2026-10-24T08:00:11.193Z"
+  },
+  {
+    "file": "survey-entrance-b2-west-front-EnUxY0.jpg",
+    "spotId": "entrance-b2-west",
+    "side": "FRONT",
+    "heading": 85,
+    "surveyed": "2026-10-24T08:01:10.406Z"
+  },
+  {
+    "file": "survey-entrance-b2-west-right-ufQC6J.jpg",
+    "spotId": "entrance-b2-west",
+    "side": "RIGHT",
+    "heading": 54,
+    "surveyed": "2026-10-24T08:01:26.504Z"
+  },
+  {
+    "file": "survey-entrance-b2-west-back-g00MLz.jpg",
+    "spotId": "entrance-b2-west",
+    "side": "BACK",
+    "heading": 164,
+    "surveyed": "2026-10-24T08:01:36.873Z"
+  },
+  {
+    "file": "survey-entrance-b2-west-left-17azo5.jpg",
+    "spotId": "entrance-b2-west",
+    "side": "LEFT",
+    "heading": 254,
+    "surveyed": "2026-10-24T08:01:45.100Z"
+  },
+  {
+    "file": "survey-cp-b2-west-front-gzUI7B.jpg",
+    "spotId": "cp-b2-west",
+    "side": "FRONT",
+    "heading": 272,
+    "surveyed": "2026-10-24T08:02:22.096Z"
+  },
+  {
+    "file": "survey-cp-b2-west-front-TKb31a.jpg",
+    "spotId": "cp-b2-west",
+    "side": "FRONT",
+    "heading": 170,
+    "surveyed": "2026-10-24T08:02:35.355Z"
+  },
+  {
+    "file": "survey-b2-stairs-m09-front-oRo5ga.jpg",
+    "spotId": "b2-stairs-m09",
+    "side": "FRONT",
+    "heading": 201,
+    "surveyed": "2026-10-24T08:04:01.206Z"
+  },
+  {
+    "file": "survey-b2-stairs-south-front-EyqUFF.jpg",
+    "spotId": "b2-stairs-south",
+    "side": "FRONT",
+    "heading": 130,
+    "surveyed": "2026-10-24T08:04:57.327Z"
+  },
+  {
+    "file": "survey-b2-south-lounge-front-7SljJL.jpg",
+    "spotId": "b2-south-lounge",
+    "side": "FRONT",
+    "heading": 2,
+    "surveyed": "2026-10-24T08:05:31.846Z"
+  },
+  {
+    "file": "survey-b2-south-lounge-right-s3Ijoe.jpg",
+    "spotId": "b2-south-lounge",
+    "side": "RIGHT",
+    "heading": 35,
+    "surveyed": "2026-10-24T08:05:40.725Z"
+  },
+  {
+    "file": "survey-b2-south-lounge-back-X1tpyN.jpg",
+    "spotId": "b2-south-lounge",
+    "side": "BACK",
+    "heading": 296,
+    "surveyed": "2026-10-24T08:05:52.021Z"
+  },
+  {
+    "file": "survey-entrance-b2-south-front-Y6wVVD.jpg",
+    "spotId": "entrance-b2-south",
+    "side": "FRONT",
+    "heading": 25,
+    "surveyed": "2026-10-24T08:06:10.661Z"
+  },
+  {
+    "file": "survey-entrance-b2-south-right-f1yOU7.jpg",
+    "spotId": "entrance-b2-south",
+    "side": "RIGHT",
+    "heading": 21,
+    "surveyed": "2026-10-24T08:06:19.652Z"
+  },
+  {
+    "file": "survey-entrance-b2-south-back-lgHs3m.jpg",
+    "spotId": "entrance-b2-south",
+    "side": "BACK",
+    "heading": 79,
+    "surveyed": "2026-10-24T08:06:28.519Z"
+  },
+  {
+    "file": "survey-entrance-b2-south-left-uM1Uua.jpg",
+    "spotId": "entrance-b2-south",
+    "side": "LEFT",
+    "heading": 155,
+    "surveyed": "2026-10-24T08:06:34.649Z"
+  },
+  {
+    "file": "survey-cafe-courtyard-front-MNUAmU.jpg",
+    "spotId": "cafe-courtyard",
+    "side": "FRONT",
+    "heading": 77,
+    "surveyed": "2026-10-24T08:09:12.450Z"
+  },
+  {
+    "file": "survey-cafe-courtyard-right-DhPFHz.jpg",
+    "spotId": "cafe-courtyard",
+    "side": "RIGHT",
+    "heading": 20,
+    "surveyed": "2026-10-24T08:09:14.894Z"
+  },
+  {
+    "file": "survey-cafe-courtyard-back-GdJdBj.jpg",
+    "spotId": "cafe-courtyard",
+    "side": "BACK",
+    "heading": 116,
+    "surveyed": "2026-10-24T08:09:20.880Z"
+  },
+  {
+    "file": "survey-cafe-courtyard-left-vf3YLt.jpg",
+    "spotId": "cafe-courtyard",
+    "side": "LEFT",
+    "heading": 99,
+    "surveyed": "2026-10-24T08:09:26.200Z"
+  },
+  {
+    "file": "survey-stairs-1-cafe-front-J4GBvP.jpg",
+    "spotId": "stairs-1-cafe",
+    "side": "FRONT",
+    "heading": 35,
+    "surveyed": "2026-10-24T08:09:37.505Z"
+  }
 ]

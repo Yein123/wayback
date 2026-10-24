@@ -28,6 +28,18 @@ describe("gpsToMap", () => {
     expect(here.accuracy).toBeCloseTo(6, 1);
   });
 
+  it("widens the accuracy by how far the fit misses rough anchors", () => {
+    // each anchor's reading is 12 m off, in a different direction
+    const rough = [
+      { ...at(12, 0), pos: toMap(0, 0) },
+      { ...at(40, 22), pos: toMap(40, 10) },
+      { ...at(-32, 35), pos: toMap(-20, 35) },
+      { ...at(30, 48), pos: toMap(30, 60) },
+    ];
+    const here = gpsToMap({ ...at(15, 20), accuracy: 6 }, rough)!;
+    expect(here.accuracy).toBeGreaterThan(12);
+  });
+
   it("is off with fewer than two anchors", () => {
     expect(gpsToMap({ ...at(0, 0), accuracy: 5 }, anchors.slice(0, 1))).toBeNull();
   });

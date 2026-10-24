@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CUBE, CUBE_ENTRY_X, cubePlan, cubePoint, cubes, floorLevel, HALLWAYS, hallwayPath, PLAN, type Cube } from "@/lib/building";
+import { CUBE, CUBE_ENTRY_X, cubeParts, cubePlan, cubePoint, cubes, floorLevel, HALLWAYS, hallwayPath, PLAN, type Cube } from "@/lib/building";
 import { map, spotLevel, type Spot } from "@/lib/map";
 
 export type Pin = {
@@ -23,12 +23,23 @@ type Stack = { hallway: string; side: string; upper: Cube; lower: Cube };
  * One floor's plan (hallways, lobby, cubes, known spots). Tap where you're standing to drop a pin;
  * tap a cube to zoom in and pin a spot inside it (rooms 1–4, toilet), on its upper or lower cube.
  */
-export default function FloorPlanPicker({ floor, pin, onPin }: { floor: string; pin: Pin | null; onPin: (pin: Pin) => void }) {
+export default function FloorPlanPicker({
+  floor,
+  pin,
+  onPin,
+  saved = [],
+}: {
+  floor: string;
+  pin: Pin | null;
+  onPin: (pin: Pin) => void;
+  /** Places already surveyed on this floor, shown as violet rings. */
+  saved?: [number, number][];
+}) {
   const svg = useRef<SVGSVGElement>(null);
   const [zoom, setZoom] = useState<Stack | null>(null);
   const [upper, setUpper] = useState(true);
   const level = floorLevel(floor);
-  const allCubes = cubes();
+  const allCubes = cubes(floor);
   const stacks: Stack[] = allCubes
     .filter((c) => c.stair === 2 || c.stair === 3)
     .map((up) => ({
@@ -109,7 +120,7 @@ export default function FloorPlanPicker({ floor, pin, onPin }: { floor: string; 
         aria-label={cube ? "Cube plan: tap where you are standing" : `Floor ${floor} plan: tap where you are standing, or tap a cube to zoom in`}
       >
         {HALLWAYS.map((h) => (
-          <polyline key={h} points={hallwayPath(h).map((p) => p.join(",")).join(" ")} fill="none" stroke="#1E2D42" strokeWidth={5} strokeLinecap="round" />
+          <polyline key={h} points={hallwayPath(h, floor).map((p) => p.join(",")).join(" ")} fill="none" stroke="#1E2D42" strokeWidth={5} strokeLinecap="round" />
         ))}
         {stacks.map((s) => (
           <rect
@@ -151,7 +162,7 @@ export default function FloorPlanPicker({ floor, pin, onPin }: { floor: string; 
         )}
 
         {cube &&
-          cubePlan(1).map((p) => {
+          cubeParts(cube, 1).map((p) => {
             const pts = polygon(cube, p.x, p.d);
             const [cx, cy] = cubePoint(cube, (p.x[0] + p.x[1]) / 2, (p.d[0] + p.d[1]) / 2);
             const mine = pin?.cube?.room === p.room && p.kind === "room";
@@ -173,6 +184,10 @@ export default function FloorPlanPicker({ floor, pin, onPin }: { floor: string; 
 
         {spots.map((s) => (
           <circle key={s.id} cx={s.pos[0]} cy={s.pos[1]} r={cube ? 0.4 : 1.6} fill={pin?.spot?.id === s.id ? "#3EE6F2" : "#8FA1AD"} />
+        ))}
+
+        {saved.map((p) => (
+          <circle key={p.join(",")} cx={p[0]} cy={p[1]} r={cube ? 0.7 : 2.6} fill="none" stroke="#9B7BFF" strokeWidth={cube ? 0.15 : 0.6} />
         ))}
 
         {pin && (!cube || pin.level === pinLevel) && (
