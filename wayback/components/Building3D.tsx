@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { CUBE, CUBE_ENTRY_X, PLAN, PLAN_SCALE, cubeParts, cubePlan, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, type Cube, type CubePart } from "@/lib/building";
 import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
+import type { MapFix } from "@/lib/liveGps";
 import type { Step } from "@/lib/route";
 
 const FH = 7; // world units per floor (stretched so the tower reads as a tower)
@@ -30,10 +31,13 @@ export default function Building3D({
   steps,
   stepIndex,
   onWalked,
+  gps = null,
 }: {
   steps: Step[];
   stepIndex: number;
   onWalked: (index: number) => void;
+  /** Where live GPS puts you, drawn on the floor you're on (GPS can't tell floors). */
+  gps?: MapFix | null;
 }) {
   const [level, setLevel] = useState(() => spotLevel(getSpot(steps[stepIndex].from)!));
   const [spotId, setSpotId] = useState(steps[stepIndex].from);
@@ -109,6 +113,7 @@ export default function Building3D({
         fallback={<p className="p-6 text-sm text-muted">This phone can&apos;t draw 3D. Switch to 2D.</p>}
       >
         <Scene steps={steps} stepIndex={stepIndex} onWalked={onWalked} overview={overview} onLevel={setLevel} onSpot={setSpotId} onTag={placeTag} look={look} />
+        {gps && <GpsMark fix={gps} y={Math.round(level) * FH} />}
       </Canvas>
 
       <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-10rem)] truncate rounded-lg border border-edge bg-panel/80 px-2.5 py-1 font-hud text-xs tracking-widest text-glow">
@@ -690,4 +695,24 @@ const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 function lerpAngle(a: number, b: number, t: number) {
   const d = ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
   return a + d * t;
+}
+
+/** Live GPS: a violet dot with a ring as wide as its uncertainty, on the floor you're on. */
+function GpsMark({ fix, y }: { fix: MapFix; y: number }) {
+  return (
+    <group position={[fix.x, y + 0.3, fix.y]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[fix.accuracy, 48]} />
+        <meshBasicMaterial color={VIOLET} transparent opacity={0.12} depthWrite={false} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[fix.accuracy - 0.4, fix.accuracy, 48]} />
+        <meshBasicMaterial color={VIOLET} transparent opacity={0.7} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0.6, 0]}>
+        <sphereGeometry args={[1.1, 16, 12]} />
+        <meshBasicMaterial color={VIOLET} toneMapped={false} />
+      </mesh>
+    </group>
+  );
 }

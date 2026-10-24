@@ -13,6 +13,20 @@ export function getGps(timeoutMs = 5000): Promise<Gps | null> {
   });
 }
 
+/** Live GPS while you walk: calls back on every new fix. Returns a function that stops it. */
+export function watchGps(onFix: (gps: Gps) => void, onFail: () => void): () => void {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    onFail();
+    return () => {};
+  }
+  const id = navigator.geolocation.watchPosition(
+    (p) => onFix({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
+    onFail,
+    { enableHighAccuracy: true, maximumAge: 5_000, timeout: 20_000 },
+  );
+  return () => navigator.geolocation.clearWatch(id);
+}
+
 /** A real GPS reading taken at a known spot on the map, collected during the survey. */
 export type GpsAnchor = { lat: number; lng: number; pos: [number, number] };
 

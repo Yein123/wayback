@@ -85,7 +85,8 @@ export async function matchPhoto(photo: Blob): Promise<SpotGuess[]> {
 }
 
 let anchors: Promise<GpsAnchor[]> | null = null;
-function loadAnchors() {
+/** The surveyed GPS anchors that turn a GPS fix into a map position. */
+export function loadAnchors() {
   anchors ??= fetch("/data/gps-anchors.json")
     .then((r) => (r.ok ? r.json() : []))
     .catch(() => []);

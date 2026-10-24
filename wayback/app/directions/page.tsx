@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import HudPanel from "@/components/HudPanel";
 import RouteSim, { type SimView } from "@/components/RouteSim";
 import StepDiagram from "@/components/StepDiagram";
+import { useLiveGps } from "@/lib/liveGps";
 import { getSpot, map } from "@/lib/map";
 import { endParking } from "@/lib/parkings";
 import { floorChange, shortestPath, toSteps, type Step } from "@/lib/route";
@@ -28,6 +29,10 @@ export default function DirectionsPage() {
   const [full, setFull] = useState(false);
   // After a lift or stairs step, Next first asks you to confirm the floor (the app can't sense a lift ride).
   const [askFloor, setAskFloor] = useState(false);
+  // Live GPS: a dot on the map as you walk. Rough (±20–30 m here) and blind to floors, so it only guides.
+  const [gpsOn, setGpsOn] = useState(true);
+  const live = useLiveGps(gpsOn);
+  const gps = live.state === "fix" ? live.fix : null;
 
   // Leaving the phone's real full screen (back gesture, Esc) also leaves ours.
   useEffect(() => {
@@ -218,9 +223,9 @@ export default function DirectionsPage() {
           }
         >
           {view === "3d" ? (
-            <Building3D steps={steps} stepIndex={stepIndex} onWalked={setWalked} />
+            <Building3D steps={steps} stepIndex={stepIndex} onWalked={setWalked} gps={gps} />
           ) : (
-            <RouteSim steps={steps} stepIndex={stepIndex} view="2d" onWalked={setWalked} />
+            <RouteSim steps={steps} stepIndex={stepIndex} view="2d" onWalked={setWalked} gps={gps} />
           )}
           <div className="absolute right-3 top-3 flex overflow-hidden rounded-lg border border-edge bg-panel/80 font-hud text-xs tracking-widest">
             {(["2d", "3d"] as const).map((v) => (
@@ -233,6 +238,14 @@ export default function DirectionsPage() {
                 {v.toUpperCase()}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setGpsOn(!gpsOn)}
+              aria-label={gpsOn ? "Turn live GPS off" : "Turn live GPS on"}
+              className={`border-l border-edge px-2.5 py-1 ${gpsOn ? "bg-violet/20 text-violet" : "text-muted"}`}
+            >
+              {gpsLabel(live)}
+            </button>
             <button
               type="button"
               onClick={toggleFull}
@@ -282,6 +295,13 @@ export default function DirectionsPage() {
       {!full && controls}
     </main>
   );
+}
+
+function gpsLabel(live: ReturnType<typeof useLiveGps>): string {
+  if (live.state === "fix") return `GPS ±${Math.round(live.fix.accuracy)}M`;
+  if (live.state === "waiting") return "GPS …";
+  if (live.state === "unavailable") return "GPS ✕";
+  return "GPS";
 }
 
 /** A real photo for the step: what you'll see when you get there, else where you start from. */

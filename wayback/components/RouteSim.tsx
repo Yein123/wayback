@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CUBE, CUBE_ENTRY_X, cubePoint, cubes, FLOORS, floorLevel, HALLWAYS, hallwayPath, levelName, LIFT_FLOORS, type Cube } from "@/lib/building";
 import { getSpot, map, spotLevel, type Spot } from "@/lib/map";
+import type { MapFix } from "@/lib/liveGps";
 import type { Step } from "@/lib/route";
 
 export type SimView = "2d" | "3d";
@@ -32,11 +33,14 @@ export default function RouteSim({
   stepIndex,
   view,
   onWalked,
+  gps = null,
 }: {
   steps: Step[];
   stepIndex: number;
   view: SimView;
   onWalked: (index: number) => void;
+  /** Where live GPS puts you, drawn on the floor you're on (GPS can't tell floors). */
+  gps?: MapFix | null;
 }) {
   const anchor = useRef<HTMLDivElement>(null);
   const cam = useRef({ x: 0, y: 0, z: 0, heading: initialHeading(steps), tilt: view === "3d" ? TILT_3D : 0, zoom: ZOOM[view] });
@@ -128,6 +132,18 @@ export default function RouteSim({
             {l.svg}
           </div>
         ))}
+        {gps && (
+          <div
+            className="pointer-events-none absolute left-0 top-0"
+            style={{ transform: `translate3d(${gps.x * S}px, ${gps.y * S}px, ${Math.round(level) * FLOOR_GAP + 1}px)` }}
+          >
+            <span
+              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet/70 bg-violet/10"
+              style={{ width: gps.accuracy * 2 * S, height: gps.accuracy * 2 * S }}
+            />
+            <span className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-void bg-violet" />
+          </div>
+        )}
       </div>
 
       {/* You: always in the middle, always facing up */}
@@ -181,11 +197,10 @@ function drawLayers(steps: Step[], stepIndex: number) {
     if (!layers.has(level)) layers.set(level, { level, cubes: [], spots: [] });
     return layers.get(level)!;
   };
-  const allCubes = cubes();
   for (const floor of FLOORS) {
     const level = floorLevel(floor);
     layer(level).floor = floor;
-    for (const c of allCubes) layer(level + c.half).cubes.push(c);
+    for (const c of cubes(floor)) layer(level + c.half).cubes.push(c);
   }
   for (const s of map.spots) layer(spotLevel(s)).spots.push(s);
 
@@ -225,7 +240,7 @@ function drawLayers(steps: Step[], stepIndex: number) {
             {HALLWAYS.map((h) => (
               <polyline
                 key={h}
-                points={hallwayPath(h).map((p) => p.join(",")).join(" ")}
+                points={hallwayPath(h, l.floor).map((p) => p.join(",")).join(" ")}
                 fill="none"
                 stroke="#0E1624"
                 strokeOpacity={0.9}
@@ -234,7 +249,7 @@ function drawLayers(steps: Step[], stepIndex: number) {
               />
             ))}
             {HALLWAYS.map((h) => {
-              const path = hallwayPath(h);
+              const path = hallwayPath(h, l.floor);
               const [ex, ey] = path.at(-1)!;
               return (
                 <g key={h}>
