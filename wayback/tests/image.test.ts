@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detailScore, PLAIN_WALL, stretchGray } from "@/lib/image";
+import { detailScore, PLAIN_WALL } from "@/lib/image";
 
 describe("detailScore", () => {
   const picture = (f: (x: number, y: number) => number, w = 64, h = 80) =>
@@ -17,17 +17,3 @@ describe("detailScore", () => {
   });
 });
 
-describe("stretchGray", () => {
-  it("turns a dim, low-contrast photo grey and full range", () => {
-    // 100 pixels from rgb(100,100,100) to rgb(140,140,140): a washed-out sign under a tube light
-    const px = new Uint8ClampedArray(400);
-    for (let i = 0; i < 100; i++) px.set([100 + Math.round((i * 40) / 99), 100 + Math.round((i * 40) / 99), 100 + Math.round((i * 40) / 99), 255], i * 4);
-    stretchGray(px);
-    expect(px[0]).toBe(0);
-    expect(px[99 * 4]).toBe(255);
-    expect(px[50 * 4]).toBeGreaterThan(100);
-    expect(px[50 * 4]).toBeLessThan(155);
-    expect(px[50 * 4 + 1]).toBe(px[50 * 4]);
-    expect(px[50 * 4 + 3]).toBe(255);
-  });
-});

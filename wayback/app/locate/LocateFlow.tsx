@@ -60,8 +60,14 @@ export default function LocateFlow() {
     try {
       const guesses = await matchPhotos(shots, await gps.current);
       setStep({ kind: "result", photoUrl, file: shots[0], guesses });
+      // Each photo's words show as soon as that photo is read; "reading" until the first one is.
       setSign("reading");
-      void Promise.all(reads.current).then((r) => setSign(mergeReads(r)));
+      const done: SignRead[] = [];
+      for (const read of reads.current)
+        void read.then((r) => {
+          done.push(r);
+          if (r.seen.length || done.length === reads.current.length) setSign(mergeReads(done));
+        });
     } catch (err) {
       setStep({ kind: "error", message: err instanceof Error ? err.message : String(err) });
     }

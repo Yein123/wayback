@@ -16,45 +16,6 @@ export async function resizePhoto(file: Blob, maxSide = 448, quality = 0.85): Pr
   );
 }
 
-/** A grey copy with the contrast stretched (darkest 1% to black, brightest 1% to white): signs read better by OCR. */
-export async function grayPhoto(file: Blob, maxSide: number): Promise<Blob> {
-  const bitmap = await createImageBitmap(await resizePhoto(file, maxSide, 0.95));
-  const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(bitmap, 0, 0);
-  bitmap.close();
-  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  stretchGray(image.data);
-  ctx.putImageData(image, 0, 0);
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not read photo"))), "image/jpeg", 0.92),
-  );
-}
-
-/** RGBA pixels to grey, in place, stretched so the 1st–99th percentile of brightness spans black to white. */
-export function stretchGray(rgba: Uint8ClampedArray | Uint8Array): void {
-  const n = rgba.length / 4;
-  const counts = new Uint32Array(256);
-  for (let i = 0; i < n; i++) {
-    const g = Math.round(0.299 * rgba[i * 4] + 0.587 * rgba[i * 4 + 1] + 0.114 * rgba[i * 4 + 2]);
-    rgba[i * 4] = g;
-    counts[g]++;
-  }
-  const at = (share: number) => {
-    let seen = 0;
-    for (let v = 0; v < 256; v++) if ((seen += counts[v]) >= share * n) return v;
-    return 255;
-  };
-  const [lo, hi] = [at(0.01), at(0.99)];
-  const scale = hi > lo ? 255 / (hi - lo) : 1;
-  for (let i = 0; i < n; i++) {
-    const v = Math.min(255, Math.max(0, Math.round((rgba[i * 4] - lo) * scale)));
-    rgba[i * 4] = rgba[i * 4 + 1] = rgba[i * 4 + 2] = v;
-  }
-}
-
 /** A small JPEG data URL (~20–40 KB) to store inside a Firestore record. */
 export async function makeThumb(file: Blob): Promise<string> {
   const small = await resizePhoto(file, 320, 0.6);
