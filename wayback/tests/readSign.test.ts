@@ -18,5 +18,6 @@ describe.runIf(process.env.npm_lifecycle_event === "check:ocr")("reading real si
     const board = await read(ocr, "cube-f6-37.jpg");
     expect(board).toMatchObject({ cube: "F6-37", floor: "5" });
     expect(getSpot(`cube-${board.cube!.toLowerCase()}`)).toBeDefined();
+    expect(await read(ocr, "cube-f6-25.jpg")).toMatchObject({ cube: "F6-25", floor: "5" });
   }, 400_000);
 });
