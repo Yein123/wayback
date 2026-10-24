@@ -10,7 +10,7 @@ import StepDiagram from "@/components/StepDiagram";
 import CompassArrow from "@/components/CompassArrow";
 import { useCompass } from "@/lib/compass";
 import { mapBearing } from "@/lib/gps";
-import { useAnchors, useLiveGps } from "@/lib/liveGps";
+import { useAnchors, useLiveGps, type MapFix } from "@/lib/liveGps";
 import { getSpot, map, spotLevel } from "@/lib/map";
 import { endParking } from "@/lib/parkings";
 import { floorChange, shortestPath, toSteps, type Step } from "@/lib/route";
@@ -77,10 +77,10 @@ export default function DirectionsPage() {
   const canSim = steps.every((s) => s.from && s.to);
   const photo = photoFor(step);
   const minutesLeft = Math.max(1, Math.round(secondsLeft(steps, stepIndex) / 60));
-  const bearing = anchors ? stepBearing(step, anchors) : null;
-  const heading = bearing === null ? null : (
+  const way = anchors ? stepBearing(step, anchors, gps) : null;
+  const heading = way === null ? null : (
     <div className="flex items-center justify-between gap-2">
-      <CompassArrow bearing={bearing} heading={compass.heading} />
+      <CompassArrow bearing={way.bearing} heading={compass.heading} fromGps={way.fromGps} />
       {compass.needsPermission && (
         <button type="button" onClick={compass.enable} className="shrink-0 rounded-lg border border-glow/60 px-3 py-1.5 font-hud text-[10px] tracking-widest text-glow">
           COMPASS ON
@@ -169,8 +169,21 @@ export default function DirectionsPage() {
       </div>
     </div>
   ) : (
-    <div className="mt-auto flex gap-3">
-      {stepIndex > 0 && (
+    <div className={`mt-auto flex gap-3 ${isLast ? "justify-between" : ""}`}>
+      {isLast && stepIndex > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setWalked(-1);
+            go(0);
+          }}
+          aria-label="Restart the route from the first step"
+          className="rounded-2xl border border-violet/60 px-5 py-3 font-hud text-sm tracking-widest text-violet active:scale-[0.98]"
+        >
+          ↺ RESTART
+        </button>
+      )}
+      {!isLast && stepIndex > 0 && (
         <button
           type="button"
           onClick={() => go(stepIndex - 1)}
@@ -203,7 +216,7 @@ export default function DirectionsPage() {
         <button
           type="button"
           onClick={finish}
-          className="flex-1 rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
+          className="rounded-2xl border border-glow bg-glow/15 px-6 py-3 font-hud text-sm tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
         >
           {trip.mode === "toCar" ? "ARRIVED" : "DONE"}
         </button>
@@ -323,11 +336,21 @@ function gpsLabel(live: ReturnType<typeof useLiveGps>): string {
   return "GPS";
 }
 
-/** Which way a walking step goes, as a real compass bearing; null for lifts, cube stairs and arriving. */
-function stepBearing(step: Step, anchors: Parameters<typeof mapBearing>[1]): number | null {
+/**
+ * Which way to walk for a step, as a real compass bearing; null for lifts, cube stairs and arriving.
+ * With a GPS fix well clear of the step's end (twice its error, so the arrow is off by 30° at most) it
+ * points from where you are now to there; otherwise along the route.
+ */
+function stepBearing(step: Step, anchors: Parameters<typeof mapBearing>[1], gps: MapFix | null): { bearing: number; fromGps: boolean } | null {
   const [a, b] = [getSpot(step.from), getSpot(step.to)];
   if (!a || !b || Math.abs(spotLevel(a) - spotLevel(b)) >= 1) return null;
-  return mapBearing([b.pos[0] - a.pos[0], b.pos[1] - a.pos[1]], anchors);
+  if (gps) {
+    const [dx, dy] = [b.pos[0] - gps.x, b.pos[1] - gps.y];
+    const bearing = Math.hypot(dx, dy) > 2 * Math.max(gps.accuracy, 8) ? mapBearing([dx, dy], anchors) : null;
+    if (bearing !== null) return { bearing, fromGps: true };
+  }
+  const bearing = mapBearing([b.pos[0] - a.pos[0], b.pos[1] - a.pos[1]], anchors);
+  return bearing === null ? null : { bearing, fromGps: false };
 }
 
 /**

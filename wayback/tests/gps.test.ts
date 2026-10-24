@@ -69,3 +69,16 @@ describe("compass and coordinate names", () => {
     expect(latLngName(-33.86, -70.5)).toBe("33.86000° S, 70.50000° W");
   });
 });
+
+describe("turning to face the way", () => {
+  it("says which way to turn, the short way round", async () => {
+    const { turnBy, turnHint } = await import("@/lib/compass");
+    expect(turnBy(10, 350)).toBe(20);
+    expect(turnBy(350, 10)).toBe(-20);
+    expect(turnBy(0, 180)).toBe(180);
+    expect(turnHint(turnBy(10, 350))).toBe("RIGHT WAY");
+    expect(turnHint(-21)).toBe("TURN LEFT 20°");
+    expect(turnHint(62)).toBe("TURN RIGHT 60°");
+    expect(turnHint(170)).toBe("TURN AROUND");
+  });
+});

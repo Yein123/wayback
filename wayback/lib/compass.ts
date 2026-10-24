@@ -18,12 +18,12 @@ export function useCompass(): CompassState {
     if (typeof window === "undefined" || !("DeviceOrientationEvent" in window) || needsPermission) return;
     const onIOS = (e: Event) => {
       const h = (e as IOSOrientationEvent).webkitCompassHeading;
-      if (typeof h === "number") setHeading(h);
+      if (typeof h === "number") setHeading((prev) => smooth(prev, h));
     };
     const onAbsolute = (e: Event) => {
       const alpha = (e as DeviceOrientationEvent).alpha;
       // alpha turns counter-clockwise from north; a compass heading turns clockwise.
-      if (typeof alpha === "number") setHeading((360 - alpha) % 360);
+      if (typeof alpha === "number") setHeading((prev) => smooth(prev, (360 - alpha) % 360));
     };
     window.addEventListener("deviceorientation", onIOS);
     window.addEventListener("deviceorientationabsolute", onAbsolute);
@@ -45,6 +45,27 @@ export function useCompass(): CompassState {
 function askFn(): (() => Promise<"granted" | "denied">) | undefined {
   const ask = (DeviceOrientationEvent as unknown as IOSPermission).requestPermission;
   return ask?.bind(DeviceOrientationEvent);
+}
+
+/** Within this many degrees either side of the way to go, you're facing the right way. */
+export const ON_COURSE = 20;
+
+/** How far to turn from `heading` to face `bearing`, in degrees: negative is left, in (-180, 180]. */
+export function turnBy(bearing: number, heading: number): number {
+  const d = ((((bearing - heading) % 360) + 540) % 360) - 180;
+  return d === -180 ? 180 : d;
+}
+
+/** What to tell the walker: "RIGHT WAY", "TURN LEFT 60°", "TURN AROUND". */
+export function turnHint(turn: number): string {
+  if (Math.abs(turn) <= ON_COURSE) return "RIGHT WAY";
+  if (Math.abs(turn) >= 150) return "TURN AROUND";
+  return `TURN ${turn < 0 ? "LEFT" : "RIGHT"} ${Math.round(Math.abs(turn) / 5) * 5}°`;
+}
+
+// Phone compasses jitter by several degrees a reading: ease toward each new one (the short way round).
+function smooth(prev: number | null, next: number): number {
+  return prev === null ? next : (prev + 0.3 * turnBy(next, prev) + 360) % 360;
 }
 
 /** 47 → "NE 47°". */

@@ -12,8 +12,10 @@ import { makeThumb } from "@/lib/image";
 import { LIFT_FLOORS } from "@/lib/building";
 import { getSpot } from "@/lib/map";
 import { matchPhotos } from "@/lib/matcher";
+import { readSign } from "@/lib/readSign";
+import { mergeReads, type SignRead } from "@/lib/signText";
 import { getCurrentParking, saveParking } from "@/lib/parkings";
-import { shortestPath, toSteps } from "@/lib/route";
+import { findRoom, shortestPath, toSteps } from "@/lib/route";
 import { currentTrip, startTrip } from "@/lib/trip";
 import { clearPendingPhoto, peekPendingPhoto } from "@/lib/pendingPhoto";
 import type { SpotGuess } from "@/lib/scoring";
@@ -30,9 +32,9 @@ type Step =
 
 const prompts: Record<Mode, string> = {
   park: "Snap around your parking spot.",
-  car: "Snap around where you are now.",
-  help: "Snap around where you are now.",
-  where: "Snap around where you are now.",
+  car: "Snap around where you are now. A sign or room number in a photo helps.",
+  help: "Snap around where you are now. A sign or room number in a photo helps.",
+  where: "Snap around where you are now. A sign or room number in a photo helps.",
 };
 
 export default function LocateFlow() {
@@ -47,6 +49,9 @@ export default function LocateFlow() {
 
   // GPS is asked for at the first shot, so it's ready by the time the photos are matched.
   const gps = useRef<Promise<Gps | null> | null>(null);
+  // The words in each photo (signs, room numbers), read beside the photo match.
+  const reads = useRef<Promise<SignRead>[]>([]);
+  const [sign, setSign] = useState<SignRead | "reading" | null>(null);
 
   const runMatch = useCallback(async (shots: File[]) => {
     const photoUrl = URL.createObjectURL(shots[0]);
@@ -55,6 +60,8 @@ export default function LocateFlow() {
     try {
       const guesses = await matchPhotos(shots, await gps.current);
       setStep({ kind: "result", photoUrl, file: shots[0], guesses });
+      setSign("reading");
+      void Promise.all(reads.current).then((r) => setSign(mergeReads(r)));
     } catch (err) {
       setStep({ kind: "error", message: err instanceof Error ? err.message : String(err) });
     }
@@ -63,6 +70,8 @@ export default function LocateFlow() {
   const addShot = useCallback(
     (shots: File[], file: File) => {
       gps.current ??= getGps();
+      if (shots.length === 0) reads.current = [];
+      reads.current.push(readSign(file));
       const next = [...shots, file];
       if (next.length === SIDES.length) void runMatch(next);
       else setStep({ kind: "snap", shots: next });
@@ -101,6 +110,7 @@ export default function LocateFlow() {
     if (!handedOver) return;
     clearPendingPhoto();
     gps.current ??= getGps();
+    reads.current = [readSign(handedOver)];
   }, [handedOver]);
 
   return (
@@ -139,6 +149,13 @@ export default function LocateFlow() {
       {step.kind === "result" && (
         <Result
           step={step}
+          sign={sign}
+          onSignPhoto={async (file) => {
+            const before = sign;
+            setSign("reading");
+            const read = await readSign(file);
+            setSign(mergeReads(before && before !== "reading" ? [read, before] : [read]));
+          }}
           onConfirm={async (guess) => {
             if (mode === "car") return routeToCar(guess.spotId);
             if (mode === "help") return reroute(guess.spotId);
@@ -179,21 +196,32 @@ export default function LocateFlow() {
 
 function Result({
   step,
+  sign,
+  onSignPhoto,
   onConfirm,
 }: {
   step: { photoUrl: string; guesses: SpotGuess[] };
+  sign: SignRead | "reading" | null;
+  onSignPhoto: (file: File) => void;
   onConfirm: (guess: SpotGuess) => void;
 }) {
   const top = step.guesses[0];
-  // Every floor's lift lobby looks the same (and GPS can't tell floors), so a lobby match asks which floor.
+  const read = sign && sign !== "reading" ? sign : null;
+  // A door number or a cube's board pins the spot better than the photo match.
+  const signSpot = read?.room ? findRoom(read.room) : read?.cube ? (getSpot(`cube-${read.cube.toLowerCase()}`)?.id ?? null) : null;
+  const [useSign, setUseSign] = useState(true);
+  // Every floor's lift lobby looks the same (and GPS can't tell floors), so a lobby match takes the floor
+  // from the ARAS sign, or asks.
   const atLifts = getSpot(top.spotId)?.type === "lobby";
-  const [floor, setFloor] = useState(() => getSpot(top.spotId)?.floor ?? "1");
-  const chosen = atLifts ? { ...top, spotId: `lobby-${floor.toLowerCase()}` } : top;
+  const [picked, setPicked] = useState<string | null>(null);
+  const floor = picked ?? read?.floor ?? getSpot(top.spotId)?.floor ?? "1";
+  const fromSign = !!signSpot && useSign;
+  const chosen = fromSign ? { ...top, spotId: signSpot } : atLifts ? { ...top, spotId: `lobby-${floor.toLowerCase()}` } : top;
   const spot = getSpot(chosen.spotId);
 
   return (
     <section className="flex flex-col gap-4">
-      <p className="font-hud text-xs tracking-[0.2em] text-muted">BEST MATCH</p>
+      <p className="font-hud text-xs tracking-[0.2em] text-muted">{fromSign ? "READ FROM THE SIGN" : "BEST MATCH"}</p>
       <HudPanel className="flex flex-col gap-4">
         <h2 className="font-hud text-xl font-bold tracking-wider text-glow drop-shadow-[0_0_8px_rgba(62,230,242,0.6)]">
           {spot?.label.toUpperCase() ?? top.spotId}
@@ -217,21 +245,38 @@ function Result({
           </figure>
         </div>
       </HudPanel>
-      {atLifts && (
+      {sign === "reading" && <p className="font-hud text-[10px] tracking-[0.2em] text-muted">READING SIGNS…</p>}
+      {read && read.seen.length > 0 && (
+        <HudPanel className="flex flex-col gap-2">
+          <p className="font-hud text-[10px] tracking-[0.2em] text-muted">SIGN SAYS</p>
+          <p className="font-hud text-sm tracking-widest text-glow">{read.seen.slice(0, 4).join(" · ")}</p>
+          {signSpot && (
+            <button type="button" onClick={() => setUseSign(!useSign)} className="self-start font-hud text-[10px] tracking-widest text-violet">
+              {useSign ? "USE THE PHOTO MATCH INSTEAD" : `USE THE SIGN: ${getSpot(signSpot)?.label.toUpperCase()}`}
+            </button>
+          )}
+        </HudPanel>
+      )}
+      {atLifts && !fromSign && (
         <HudPanel tone="amber" className="flex flex-col gap-3">
-          <p className="text-sm text-ink">The lift lobbies all look alike. Which floor are you on? (Check the number by the lift.)</p>
+          <p className="text-sm text-ink">
+            {read?.floor && !picked
+              ? `The ARAS sign says floor ${read.floor}. Tap another floor if that's wrong.`
+              : "The lift lobbies all look alike. Which floor are you on? Tap it, or snap the ARAS sign by the lifts."}
+          </p>
           <div className="flex gap-1.5">
             {LIFT_FLOORS.map((f) => (
               <button
                 key={f}
                 type="button"
-                onClick={() => setFloor(f)}
+                onClick={() => setPicked(f)}
                 className={`flex-1 rounded-lg border py-2 font-hud text-xs ${f === floor ? "border-glow bg-glow/20 text-glow" : "border-edge text-muted"}`}
               >
                 {f}
               </button>
             ))}
           </div>
+          {!read?.floor && <CaptureButton size="small" label="Snap the ARAS sign" onPhoto={onSignPhoto} />}
         </HudPanel>
       )}
       <button
