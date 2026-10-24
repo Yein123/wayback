@@ -47,31 +47,64 @@ function Label({ x, y, children, color = MUTED, size = 11 }: { x: number; y: num
 function draw(d: Diagram, glow: string, arrow: string): ReactNode {
   switch (d.kind) {
     case "lifts": {
+      // The lobby seen from its entrance: the lifts face each other, half on each wall, drawn in perspective.
       const all = d.highlight < 0;
-      const w = 50;
-      const gap = 14;
-      const start = 160 - (d.count * w + (d.count - 1) * gap) / 2;
+      const perSide = Math.ceil(d.count / 2);
+      // a point on a side wall: depth t (0 near, 1 far) and height h (0 floor, 1 ceiling)
+      const wall = (side: -1 | 1, t: number, h: number): [number, number] => {
+        const x = 160 + side * (150 - t * 95);
+        const floor = 190 - t * 62;
+        const ceiling = 8 + t * 52;
+        return [x, floor - h * (floor - ceiling)];
+      };
+      const quad = (pts: [number, number][]) => pts.map((p) => p.join(",")).join(" ");
+      const doors = Array.from({ length: d.count }, (_, i) => {
+        const side = i < perSide ? -1 : 1;
+        const slot = i % perSide;
+        // doors spread along the wall's depth, nearest first
+        const t0 = 0.12 + (slot * 0.8) / perSide;
+        const t1 = t0 + 0.5 / perSide;
+        const lit = all || i === d.highlight;
+        const stroke = lit ? GLOW : LINE;
+        const seamTop = wall(side as -1 | 1, (t0 + t1) / 2, 0.7);
+        const seamBottom = wall(side as -1 | 1, (t0 + t1) / 2, 0);
+        // call buttons on the wall just past the door
+        const [bx, by] = wall(side as -1 | 1, t1 + 0.04, 0.38);
+        const [lx, ly] = wall(side as -1 | 1, (t0 + t1) / 2, 0.8);
+        const door = (
+          <g key={i}>
+            <polygon
+              points={quad([wall(side as -1 | 1, t0, 0), wall(side as -1 | 1, t0, 0.7), wall(side as -1 | 1, t1, 0.7), wall(side as -1 | 1, t1, 0)])}
+              fill={lit ? "rgba(62,230,242,0.12)" : "none"}
+              stroke={stroke}
+              strokeWidth={lit ? 3 : 2}
+              strokeLinejoin="round"
+              filter={lit ? glow : undefined}
+            />
+            <line x1={seamTop[0]} y1={seamTop[1]} x2={seamBottom[0]} y2={seamBottom[1]} stroke={stroke} strokeWidth="1.5" />
+            <rect x={bx - 3} y={by - 7} width={6} height={14} rx={1.5} fill="none" stroke={lit ? GLOW : MUTED} strokeWidth="1.2" />
+            <path d={`M${bx - 1.6} ${by - 2} l1.6 -2.5 l1.6 2.5 M${bx - 1.6} ${by + 2} l1.6 2.5 l1.6 -2.5`} fill="none" stroke={lit ? GLOW : MUTED} strokeWidth="1" />
+            <Label x={lx} y={ly} color={lit ? GLOW : MUTED} size={8}>
+              L{i + 1}
+            </Label>
+          </g>
+        );
+        return lit ? <Pulse key={i}>{door}</Pulse> : door;
+      });
       return (
-        <>
-          <line x1="20" y1="160" x2="300" y2="160" stroke={LINE} strokeWidth="2" />
-          {Array.from({ length: d.count }, (_, i) => {
-            const lit = all || i === d.highlight;
-            const x = start + i * (w + gap);
-            const door = (
-              <g key={i}>
-                <rect x={x} y={60} width={w} height={100} rx={4} fill="none" stroke={lit ? GLOW : LINE} strokeWidth={lit ? 3 : 2} filter={lit ? glow : undefined} />
-                <line x1={x + w / 2} y1={64} x2={x + w / 2} y2={156} stroke={lit ? GLOW : LINE} strokeWidth="1.5" />
-                <Label x={x + w / 2} y={50} color={lit ? GLOW : MUTED} size={10}>
-                  L{i + 1}
-                </Label>
-              </g>
-            );
-            return lit ? <Pulse key={i}>{door}</Pulse> : door;
-          })}
-          <Label x={160} y={186} color={GLOW}>
-            {all ? "ANY LIFT" : `LIFT ${d.highlight + 1}`}
+        // undo the shared tilt: this one is already in perspective
+        <g transform="translate(160 100) skewX(6) translate(-160 -100)">
+          {/* floor edges, ceiling edges and the far wall */}
+          <polyline points={quad([wall(-1, 0, 0), wall(-1, 1, 0), wall(1, 1, 0), wall(1, 0, 0)])} fill="none" stroke={LINE} strokeWidth="2" />
+          <polyline points={quad([wall(-1, 0, 1), wall(-1, 1, 1), wall(1, 1, 1), wall(1, 0, 1)])} fill="none" stroke={LINE} strokeWidth="1.5" />
+          <line x1={wall(-1, 1, 0)[0]} y1={wall(-1, 1, 0)[1]} x2={wall(-1, 1, 1)[0]} y2={wall(-1, 1, 1)[1]} stroke={LINE} strokeWidth="1.5" />
+          <line x1={wall(1, 1, 0)[0]} y1={wall(1, 1, 0)[1]} x2={wall(1, 1, 1)[0]} y2={wall(1, 1, 1)[1]} stroke={LINE} strokeWidth="1.5" />
+          {doors}
+          <rect x={78} y={170} width={164} height={22} rx={4} fill="#0B1220" stroke={GLOW} strokeWidth="1" />
+          <Label x={160} y={185} color={GLOW} size={10}>
+            {all ? "ANY LIFT · PRESS ▲▼" : `LIFT ${d.highlight + 1}`}
           </Label>
-        </>
+        </g>
       );
     }
 
