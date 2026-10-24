@@ -222,8 +222,19 @@ function Result({
   const [picked, setPicked] = useState<string | null>(null);
   const floor = picked ?? read?.floor ?? getSpot(top.spotId)?.floor ?? "1";
   const fromSign = !!signSpot && useSign;
-  const chosen = fromSign ? { ...top, spotId: signSpot } : atLifts ? { ...top, spotId: `lobby-${floor.toLowerCase()}` } : top;
+  const matched = atLifts ? { ...top, spotId: `lobby-${floor.toLowerCase()}` } : top;
+  const chosen = fromSign ? { ...top, spotId: signSpot } : matched;
   const spot = getSpot(chosen.spotId);
+  // Confirming while a sign is still being read waits for it: a door plate or board read moves the start there.
+  const [waiting, setWaiting] = useState(false);
+  const confirmed = useRef(false);
+  const signDone = sign !== "reading";
+  const chosenId = chosen.spotId;
+  useEffect(() => {
+    if (!waiting || !signDone || confirmed.current) return;
+    confirmed.current = true;
+    onConfirm({ ...top, spotId: chosenId });
+  }, [waiting, signDone, chosenId, top, onConfirm]);
 
   return (
     <section className="flex flex-col gap-4">
@@ -287,11 +298,17 @@ function Result({
       )}
       <button
         type="button"
-        onClick={() => onConfirm(chosen)}
-        className="rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98]"
+        disabled={waiting}
+        onClick={() => (sign === "reading" ? setWaiting(true) : onConfirm(chosen))}
+        className="rounded-2xl border border-glow bg-glow/15 py-4 font-hud text-lg tracking-[0.3em] text-glow shadow-glow active:scale-[0.98] disabled:opacity-60"
       >
-        ✓ CONFIRM
+        {waiting ? "READING THE SIGN…" : "✓ CONFIRM"}
       </button>
+      {waiting && (
+        <button type="button" onClick={() => onConfirm(matched)} className="self-center font-hud text-[10px] tracking-widest text-violet">
+          DON&apos;T WAIT · USE THE PHOTO MATCH
+        </button>
+      )}
     </section>
   );
 }
