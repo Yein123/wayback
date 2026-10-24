@@ -262,7 +262,7 @@ function Result({
           <p className="text-sm text-ink">
             {read?.floor && !picked
               ? `The ARAS sign says floor ${read.floor}. Tap another floor if that's wrong.`
-              : "The lift lobbies all look alike. Which floor are you on? Tap it, or snap the ARAS sign by the lifts."}
+              : "The lift lobbies all look alike. Which floor are you on? Tap it, or snap the ARAS sign by the lifts, straight on and close enough to fill a third of the photo."}
           </p>
           <div className="flex gap-1.5">
             {LIFT_FLOORS.map((f) => (
