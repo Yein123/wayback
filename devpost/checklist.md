@@ -127,7 +127,7 @@ Feedback from the learner's phone use at M06, all fixed, deployed and retried by
 - [x] "?" during directions has ‹ BACK TO ROUTE
 Known limitation, left as is: uploading a building's floor plans (slices 7–8, beyond the M06 kernel) still needs work.
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Final review complete — feedback resolved and learner confirms ready to ship (confirmed 2026-10-25, building upload left as a known limitation)
 
 ## Code Tour and App Map
 
@@ -138,7 +138,7 @@ Known limitation, left as is: uploading a building's floor plans (slices 7–8, 
 Activity and evidence: Brief recap (learner asked for no extra exercise). Practice connected to the learner's goal of getting better results from an agent: real failing sign photos saved as fixtures with expected answers (`wayback/tests/fixtures/signs/`, `wayback/tests/readSign.test.ts`) proved the OCR switch and the door-plate pass on all 8 photos.
 Route and stops: Reference-only route in the map: `LocateFlow.tsx` `runMatch` → `lib/signText.ts` `readSignText` → `LocateFlow.tsx` `Result` / `go` → `lib/route.ts` `shortestPath`, `toSteps`. Not toured interactively.
 Edit outcome: Not applicable (no exercise; learner declined the wrap-up activity).
-Reflection: Offered once with the map; optional.
+Reflection: Offered once with the map; not answered (optional).
 Activity mode: Recap. Map anchors checked against source with grep; not opened in a browser by the agent.
 
 ## Revisions
