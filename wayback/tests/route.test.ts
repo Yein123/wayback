@@ -14,6 +14,23 @@ describe("findRoom", () => {
     }
   });
 
+  it("knows every room in the block, the way the doors are numbered", () => {
+    expect(findRoom("F3-12")).toBe("room-f3-12");
+    expect(findRoom("f5 48")).toBe("room-f5-48");
+    expect(findRoom("F10-48")).toBe("room-f10-48");
+    // floors 1–4 have all four wings (64 rooms a floor); from floor 5 up the NW and SW wings are short (48)
+    const on = (floor: string) => map.spots.filter((s) => s.type === "room" && s.floor === floor).length;
+    expect([on("2"), on("3"), on("4"), on("5"), on("6"), on("10")]).toEqual([64, 64, 64, 48, 48, 48]);
+    expect(findRoom("F5-49")).toBeNull();
+  });
+
+  it("routes from the car park to a floor 3 room by lift, hallway stair, cube and door", () => {
+    const path = spotsOn("cp-se", "room-f3-12");
+    expect(path).toContain("lobby-3");
+    expect(path.at(-2)).toMatch(/^cube-f3-/);
+    expect(getSpot(path.at(-1)!)!.room).toBe("F3-12");
+  });
+
   it("returns null for a room the map doesn't know", () => {
     expect(findRoom("F9-99")).toBeNull();
     expect(findRoom("hello")).toBeNull();

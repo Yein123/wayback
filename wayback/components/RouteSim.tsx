@@ -202,7 +202,9 @@ function drawLayers(steps: Step[], stepIndex: number) {
     layer(level).floor = floor;
     for (const c of cubes(floor)) layer(level + c.half).cubes.push(c);
   }
-  for (const s of map.spots) layer(spotLevel(s)).spots.push(s);
+  // The rooms, cubes and stairs made from the layout rules only show when they're on your route.
+  const onRoute = new Set(steps.flatMap((s) => [s.from, s.to]));
+  for (const s of map.spots) if (!s.generated || onRoute.has(s.id)) layer(spotLevel(s)).spots.push(s);
 
   const end = steps.at(-1)?.to;
   const at = (id: string) => getSpot(id)!;

@@ -1,6 +1,7 @@
 // The dorm map: fixed spots and links, shipped with the app.
 import dormMap from "@/public/data/dorm-map.json";
 import { floorLevel } from "@/lib/building";
+import { roomGraph } from "@/lib/rooms";
 
 export { floorLevel };
 
@@ -15,6 +16,8 @@ export type Spot = {
   pos: [number, number];
   /** Height in floor levels when it isn't the floor's own (a cube half a flight up is 4.5). */
   level?: number;
+  /** Made from the building's layout rules (lib/rooms.ts) rather than mapped by hand. */
+  generated?: boolean;
 };
 
 /** Which picture a direction step shows (drawn by components/StepDiagram.tsx). */
@@ -42,7 +45,15 @@ export type Link = {
 export type DormMap = { spots: Spot[]; links: Link[] };
 
 // JSON imports type `pos` as number[], not a pair
-export const map = dormMap as unknown as DormMap;
+const handMapped = dormMap as unknown as DormMap;
+// Every room in the block, filled in around the hand-mapped spots (which win on the same id or link).
+const rooms = roomGraph();
+const mappedIds = new Set(handMapped.spots.map((s) => s.id));
+const mappedLinks = new Set(handMapped.links.map((l) => `${l.from}>${l.to}`));
+export const map: DormMap = {
+  spots: [...handMapped.spots, ...rooms.spots.filter((s) => !mappedIds.has(s.id))],
+  links: [...handMapped.links, ...rooms.links.filter((l) => !mappedLinks.has(`${l.from}>${l.to}`))],
+};
 export const spots: Spot[] = map.spots;
 
 const byId = new Map(spots.map((s) => [s.id, s]));

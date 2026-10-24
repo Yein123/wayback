@@ -52,7 +52,8 @@ export default function FloorPlanPicker({
   const cube = zoom ? (upper ? zoom.upper : zoom.lower) : null;
   const pinLevel = cube ? level + cube.half : level;
   // Known spots at what you're looking at: this floor's plan, or the zoomed cube's level.
-  const spots = map.spots.filter((s) => (cube ? spotLevel(s) === pinLevel : Math.floor(spotLevel(s)) === level));
+  // Only hand-mapped spots: a survey pin shouldn't snap to a room made from the layout rules.
+  const spots = map.spots.filter((s) => !s.generated && (cube ? spotLevel(s) === pinLevel : Math.floor(spotLevel(s)) === level));
 
   function point(e: React.PointerEvent<SVGSVGElement>): [number, number] | null {
     const ctm = svg.current?.getScreenCTM();
