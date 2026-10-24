@@ -26,8 +26,18 @@ Needs Node.js 20.9 or newer and a Firebase web app config.
 ```bash
 cd wayback
 npm install
-cp .env.local.example .env.local   # then fill in NEXT_PUBLIC_FIREBASE_* from your Firebase web app
 npm run dev
+```
+
+Before `npm run dev`, create `wayback/.env.local` with your Firebase web app's config (Firebase console → Project settings → Your apps). These are public web settings, not passwords, but keep the file out of git:
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 ```
 
 Open http://localhost:3000. On a laptop, use the browser's phone view and pick photos instead of taking them. The first visit downloads the AI model (about 89 MB); after that the browser caches it.
