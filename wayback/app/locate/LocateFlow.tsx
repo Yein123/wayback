@@ -197,7 +197,7 @@ export default function LocateFlow() {
             try {
               const [thumb, fix] = await Promise.all([makeThumb(step.file), gps.current ?? Promise.resolve(null)]);
               await saveParking({ spotId: guess.spotId, label: getSpot(guess.spotId)?.label ?? guess.spotId, thumb, gps: fix });
-              router.push(`/destination?from=${guess.spotId}`);
+              router.push(`/destination?from=${guess.spotId}&parked=1`);
             } catch (err) {
               setStep({ kind: "error", message: `Couldn't save your parking: ${err instanceof Error ? err.message : String(err)}` });
             }

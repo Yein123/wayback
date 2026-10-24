@@ -11,8 +11,11 @@ import { startTrip } from "@/lib/trip";
 
 export default function DestinationForm() {
   const router = useRouter();
-  const from = useSearchParams().get("from") ?? "";
+  const params = useSearchParams();
+  const from = params.get("from") ?? "";
   const fromSpot = getSpot(from);
+  // Straight after saving the parking: picking a room is optional, the parking is already kept.
+  const parked = params.get("parked") === "1";
   const [room, setRoom] = useState("");
   const [unknown, setUnknown] = useState<string | null>(null);
   useEffect(() => {
@@ -43,6 +46,15 @@ export default function DestinationForm() {
         </Link>
         <span className="font-hud text-xs tracking-[0.2em] text-glow">DESTINATION</span>
       </header>
+
+      {parked && fromSpot && (
+        <HudPanel className="flex flex-col gap-1">
+          <p className="font-hud text-sm tracking-[0.2em] text-glow">✓ PARKING SAVED</p>
+          <p className="text-sm text-muted">
+            {fromSpot.label}. Find my car on Home brings you back here. Going somewhere now is optional.
+          </p>
+        </HudPanel>
+      )}
 
       {fromSpot && (
         <p className="font-hud text-[10px] tracking-widest text-muted">
@@ -81,6 +93,11 @@ export default function DestinationForm() {
           {fromSpot ? "START QUEST" : "NEXT: FIND WHERE I AM"}
         </button>
         {!fromSpot && <p className="text-center text-sm text-muted">Then snap around you, and the route starts from where you are.</p>}
+        {parked && (
+          <Link href="/" className="text-center font-hud text-xs tracking-[0.2em] text-violet">
+            SKIP · NOT GOING ANYWHERE NOW
+          </Link>
+        )}
       </form>
     </main>
   );
