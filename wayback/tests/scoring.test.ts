@@ -65,6 +65,15 @@ describe("nearGps", () => {
     expect(nearGps(guesses, null, pos)).toEqual(guesses);
   });
 
+  it("lets a rough fix settle a close call, but not overrule a clear match", () => {
+    const close = [
+      { spotId: "far", score: 0.8, file: "f.jpg" },
+      { spotId: "near", score: 0.79, file: "n.jpg" },
+    ];
+    expect(nearGps(close, { x: 0, y: 0, accuracy: 28 }, pos)[0].spotId).toBe("near");
+    expect(nearGps(guesses, { x: 0, y: 0, accuracy: 28 }, pos)[0].spotId).toBe("far");
+  });
+
   it("never drops every spot", () => {
     expect(nearGps(guesses, { x: 500, y: 500, accuracy: 5 }, pos)).toEqual(guesses);
   });

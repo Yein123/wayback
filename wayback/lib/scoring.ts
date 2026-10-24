@@ -60,20 +60,28 @@ export function combineSides(perPhoto: SpotGuess[][]): SpotGuess[] {
 
 /**
  * The GPS pin: with an accurate fix (in map metres), drop spots that are too far away to be where you are.
- * A poor or missing fix changes nothing, and it never drops every spot. GPS can't tell floors, so only
- * the position on the floor plan is compared.
+ * A rough fix (up to ±`maxRough` m) only leans: each metre a spot lies beyond its uncertainty costs a little
+ * score, enough to settle a close call between photos but not to overrule a clear match. A worse or missing
+ * fix changes nothing, and it never drops every spot. GPS can't tell floors, so only the position on the
+ * floor plan is compared.
  */
 export function nearGps(
   guesses: SpotGuess[],
   here: { x: number; y: number; accuracy: number } | null,
   posOf: (spotId: string) => [number, number] | undefined,
-  { maxAccuracy = 20, margin = 15 } = {},
+  { maxAccuracy = 20, margin = 15, maxRough = 50, perMetre = 0.0005 } = {},
 ): SpotGuess[] {
-  if (!here || here.accuracy > maxAccuracy) return guesses;
-  const reach = here.accuracy + margin;
-  const kept = guesses.filter((g) => {
+  if (!here || here.accuracy > maxRough) return guesses;
+  const away = (g: SpotGuess) => {
     const p = posOf(g.spotId);
-    return !p || Math.hypot(p[0] - here.x, p[1] - here.y) <= reach;
-  });
+    return p ? Math.hypot(p[0] - here.x, p[1] - here.y) : 0;
+  };
+  if (here.accuracy > maxAccuracy) {
+    return guesses
+      .map((g) => ({ ...g, score: g.score - Math.max(0, away(g) - here.accuracy) * perMetre }))
+      .sort((a, b) => b.score - a.score);
+  }
+  const reach = here.accuracy + margin;
+  const kept = guesses.filter((g) => away(g) <= reach);
   return kept.length ? kept : guesses;
 }
