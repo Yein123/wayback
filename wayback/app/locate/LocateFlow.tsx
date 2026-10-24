@@ -10,7 +10,7 @@ import SnapSides, { SIDES } from "@/components/SnapSides";
 import { getGps, type Gps } from "@/lib/gps";
 import { makeThumb } from "@/lib/image";
 import { LIFT_FLOORS } from "@/lib/building";
-import { getSpot } from "@/lib/map";
+import { getSpot, map } from "@/lib/map";
 import { matchPhotos } from "@/lib/matcher";
 import { readSign } from "@/lib/readSign";
 import { liftFloorFor, mergeReads, type SignRead } from "@/lib/signText";
@@ -24,7 +24,7 @@ type Mode = "park" | "car" | "help" | "where";
 
 type Step =
   | { kind: "snap"; shots: File[] }
-  | { kind: "working"; photoUrl: string }
+  | { kind: "working"; photoUrl: string; reading?: boolean }
   | { kind: "result"; photoUrl: string; file: File; guesses: SpotGuess[] }
   | { kind: "saving" }
   | { kind: "confirmed"; guess: SpotGuess }
@@ -54,6 +54,8 @@ export default function LocateFlow() {
   const [sign, setSign] = useState<SignRead | "reading" | null>(null);
   // Bumped by a retry, so reads from the photos before it don't land on the new result.
   const round = useRef(0);
+  // Shows the matched result once; set while the signs are still being read.
+  const showResult = useRef<(() => void) | null>(null);
 
   const runMatch = useCallback(async (shots: File[]) => {
     const photoUrl = URL.createObjectURL(shots[0]);
@@ -61,17 +63,19 @@ export default function LocateFlow() {
     gps.current ??= getGps();
     try {
       const guesses = await matchPhotos(shots, await gps.current);
-      setStep({ kind: "result", photoUrl, file: shots[0], guesses });
-      // Each photo's words show as soon as that photo is read; "reading" until the first one is.
-      setSign("reading");
-      const done: SignRead[] = [];
       const mine = round.current;
-      for (const read of reads.current)
-        void read.then((r) => {
-          if (round.current !== mine) return;
-          done.push(r);
-          if (r.seen.length || done.length === reads.current.length) setSign(mergeReads(done));
-        });
+      const result = { kind: "result" as const, photoUrl, file: shots[0], guesses };
+      // The sign says where better than the photo, so the result waits for the reading (or a skip).
+      showResult.current = () => {
+        showResult.current = null;
+        setStep(result);
+      };
+      setSign("reading");
+      setStep({ kind: "working", photoUrl, reading: true });
+      const done = mergeReads(await Promise.all(reads.current));
+      if (round.current !== mine) return;
+      setSign(done);
+      showResult.current?.();
     } catch (err) {
       setStep({ kind: "error", message: err instanceof Error ? err.message : String(err) });
     }
@@ -126,9 +130,15 @@ export default function LocateFlow() {
   return (
     <main className="flex flex-1 flex-col gap-6">
       <header className="flex items-center justify-between">
-        <Link href="/" className="font-hud text-xs tracking-widest text-muted">
-          ‹ HOME
-        </Link>
+        {mode === "help" && currentTrip() ? (
+          <Link href="/directions" className="font-hud text-xs tracking-widest text-glow">
+            ‹ BACK TO ROUTE
+          </Link>
+        ) : (
+          <Link href="/" className="font-hud text-xs tracking-widest text-muted">
+            ‹ HOME
+          </Link>
+        )}
         <span className="font-hud text-xs tracking-[0.2em] text-glow">LOCATE</span>
       </header>
 
@@ -151,8 +161,14 @@ export default function LocateFlow() {
               <div className="h-1/3 w-full animate-scan bg-gradient-to-b from-transparent via-glow/30 to-transparent" />
             </div>
           </div>
-          <p className="font-hud text-sm tracking-[0.2em] text-glow">SCANNING…</p>
-          <ModelStatusLine />
+          <p className="font-hud text-sm tracking-[0.2em] text-glow">{step.reading ? "READING SIGNS…" : "SCANNING…"}</p>
+          {step.reading ? (
+            <button type="button" onClick={() => showResult.current?.()} className="font-hud text-[10px] tracking-widest text-violet">
+              DON&apos;T WAIT · SHOW THE PHOTO MATCH
+            </button>
+          ) : (
+            <ModelStatusLine />
+          )}
         </section>
       )}
 
@@ -168,6 +184,7 @@ export default function LocateFlow() {
           }}
           onRetry={() => {
             round.current++;
+            showResult.current = null;
             reads.current = [];
             setSign(null);
             setStep({ kind: "snap", shots: [] });
@@ -216,6 +233,13 @@ function liftOf(spotId: string): string | undefined {
   return floor === undefined || isNaN(Number(floor)) ? floor : liftFloorFor(Number(floor));
 }
 
+/** Where a cube's board hangs: the hallway at the foot of its half-flight of stairs. */
+function boardSpot(cube: string): string | null {
+  const id = `cube-${cube.toLowerCase()}`;
+  if (!getSpot(id)) return null;
+  return map.links.find((l) => l.from === id && l.diagram.kind === "half-stairs")?.to ?? id;
+}
+
 /** A typed place: a room number ("F6-26"), or a lift floor ("5", "B2") for its lobby. */
 function typedSpot(text: string): string | null {
   const floor = text.trim().toUpperCase().replace(/^(LOBBY|FLOOR|ARAS|LEVEL)\s*/, "");
@@ -239,7 +263,8 @@ function Result({
   const top = step.guesses[0];
   const read = sign && sign !== "reading" ? sign : null;
   // The sign wins over the photo match: a door number or a cube's board pins the spot.
-  const signSpot = read?.room ? findRoom(read.room) : read?.cube ? (getSpot(`cube-${read.cube.toLowerCase()}`)?.id ?? null) : null;
+  const signSpot = read?.room ? findRoom(read.room) : read?.cube ? boardSpot(read.cube) : null;
+  const noSign = !!read && !read.floor && !read.cube && !read.room;
   const [useSign, setUseSign] = useState(true);
   // Every floor's lift lobby looks the same (and GPS can't tell floors), so a lobby match takes the floor
   // from the ARAS sign, or asks.
@@ -290,12 +315,23 @@ function Result({
   return (
     <section className="flex flex-col gap-4">
       <p className="font-hud text-xs tracking-[0.2em] text-muted">
-        {typed ? "YOU SET" : fromSign ? "READ FROM THE SIGN" : onSignFloor ? "MATCHED ON THE SIGN'S FLOOR" : "BEST MATCH"}
+        {typed
+          ? "YOU SET"
+          : fromSign
+            ? "READ FROM THE SIGN"
+            : onSignFloor
+              ? "MATCHED ON THE SIGN'S FLOOR"
+              : noSign
+                ? "NO SIGN READ · MATCHED BY PHOTO"
+                : "BEST MATCH"}
       </p>
       <HudPanel className="flex flex-col gap-4">
         <h2 className="font-hud text-xl font-bold tracking-wider text-glow drop-shadow-[0_0_8px_rgba(62,230,242,0.6)]">
           {spot?.label.toUpperCase() ?? chosen.spotId}
         </h2>
+        {fromSign && read?.cube && !read.room && (
+          <p className="-mt-2 text-sm text-muted">By the board for {getSpot(`cube-${read.cube.toLowerCase()}`)?.label}, at the foot of its stairs.</p>
+        )}
         {fromSign || typed ? (
           // the sign (or you) said where; a lookalike reference photo would only confuse
           <div className="mx-auto w-1/2">{yourPhoto}</div>
