@@ -9,6 +9,9 @@ import SnapSides, { SIDES } from "@/components/SnapSides";
 import { cubes, LIFT_FLOORS, roomNumber } from "@/lib/building";
 import { compassName, latLngName, useCompass } from "@/lib/compass";
 import { getGps, type Gps } from "@/lib/gps";
+import { getSpot } from "@/lib/map";
+import { ensureRoomNumbers } from "@/lib/roomNumbers";
+import RoomNumberEditor from "@/components/RoomNumberEditor";
 import SavedSurvey from "@/components/SavedSurvey";
 import { groupSurvey, listSurvey, surveyAccess, uploadShot, type SurveyPlace } from "@/lib/survey";
 
@@ -35,6 +38,12 @@ export default function SurveyPage() {
   const [noteText, setNoteText] = useState("");
   const [notePhoto, setNotePhoto] = useState<File | null>(null);
   const [noteState, setNoteState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+
+  // Room numbers already fixed at the door; `numbers` re-renders once they're in.
+  const [numbers, setNumbers] = useState(0);
+  useEffect(() => {
+    void ensureRoomNumbers().then(() => setNumbers((n) => n + 1));
+  }, []);
 
   useEffect(() => {
     surveyAccess()
@@ -178,9 +187,17 @@ export default function SurveyPage() {
                 : pin.spot
                   ? `Pinned: ${pin.spot.label}`
                   : pin.cube
-                    ? `In the ${pin.cube.hallway} ${pin.cube.stair === 2 || pin.cube.stair === 3 ? "upper" : "lower"} cube (stair ${pin.cube.stair})${pin.cube.room ? `, room ${pinRoom(floor, pin.cube)}` : ", corridor"}`
+                    ? `In the ${pin.cube.hallway} ${pin.cube.stair === 2 || pin.cube.stair === 3 ? "upper" : "lower"} cube (stair ${pin.cube.stair})${pin.cube.room ? `, room ${pinRoom(floor, pin.cube)?.number}` : ", corridor"}`
                     : `New place on floor ${floor} at ${pin.pos[0]}, ${pin.pos[1]} m`}
             </p>
+            {pin?.cube?.room && pinRoom(floor, pin.cube) && (
+              <RoomNumberEditor
+                key={`${pinRoom(floor, pin.cube)!.id} ${numbers}`}
+                roomId={pinRoom(floor, pin.cube)!.id}
+                number={pinRoom(floor, pin.cube)!.number}
+                onSaved={() => setNumbers((n) => n + 1)}
+              />
+            )}
           </HudPanel>
 
           {pin && (
@@ -297,8 +314,10 @@ export default function SurveyPage() {
   );
 }
 
-/** The pinned room's door number, e.g. F6-25. */
-function pinRoom(floor: string, at: NonNullable<Pin["cube"]>): string {
+/** The pinned room's map spot and door number (as fixed at the door, else worked out from the layout). */
+function pinRoom(floor: string, at: NonNullable<Pin["cube"]>): { id: string; number: string } | null {
   const cube = cubes(floor).find((c) => c.hallway === at.hallway && c.side === at.side && c.stair === at.stair);
-  return cube && at.room ? roomNumber(floor, cube, at.room) : String(at.room);
+  if (!cube || !at.room) return null;
+  const id = `room-${roomNumber(floor, cube, at.room).toLowerCase()}`;
+  return { id, number: getSpot(id)?.room ?? roomNumber(floor, cube, at.room) };
 }

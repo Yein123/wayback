@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import HudPanel from "@/components/HudPanel";
 import { getSpot } from "@/lib/map";
 import { findRoom, normalizeRoom, shortestPath, toSteps } from "@/lib/route";
+import { ensureRoomNumbers } from "@/lib/roomNumbers";
 import { startTrip } from "@/lib/trip";
 
 export default function DestinationForm() {
@@ -14,9 +15,14 @@ export default function DestinationForm() {
   const fromSpot = getSpot(from);
   const [room, setRoom] = useState("");
   const [unknown, setUnknown] = useState<string | null>(null);
+  useEffect(() => {
+    void ensureRoomNumbers();
+  }, []);
 
-  function go(e: React.FormEvent) {
+  async function go(e: React.FormEvent) {
     e.preventDefault();
+    // numbers fixed at the door during the survey (a weak signal just means the layout's numbers)
+    await Promise.race([ensureRoomNumbers(), new Promise((r) => setTimeout(r, 4000))]);
     const to = findRoom(room);
     const path = to && fromSpot ? shortestPath(from, to) : null;
     if (!to || (fromSpot && !path)) {

@@ -18,6 +18,8 @@ export type Spot = {
   level?: number;
   /** Made from the building's layout rules (lib/rooms.ts) rather than mapped by hand. */
   generated?: boolean;
+  /** Its room number was checked at the door during the survey (lib/roomNumbers.ts). */
+  renamed?: boolean;
 };
 
 /** Which picture a direction step shows (drawn by components/StepDiagram.tsx). */

@@ -15,7 +15,9 @@ export function normalizeRoom(input: string): string {
 /** The map spot for a typed room number, or null if the map doesn't know it. */
 export function findRoom(roomNumber: string, map: DormMap = dormMap): string | null {
   const wanted = normalizeRoom(roomNumber);
-  return map.spots.find((s) => s.room && normalizeRoom(s.room) === wanted)?.id ?? null;
+  // a number checked at the door wins over one worked out from the layout
+  const matches = map.spots.filter((s) => s.room && normalizeRoom(s.room) === wanted);
+  return (matches.find((s) => s.renamed) ?? matches[0])?.id ?? null;
 }
 
 /** Shortest list of links from one spot to another (Dijkstra on walking cost), or null if unreachable. */
