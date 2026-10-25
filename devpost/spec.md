@@ -101,7 +101,7 @@ Docs:
 - **Submission:** a public GitHub repo and a short demo video (both required). The hosted link is an optional extra for anyone who wants to try it. It only gives correct results at the dorm.
   - Public repo: https://github.com/Yein123/wayback
   - Live app: https://wayback-m06-1626.web.app
-  - Demo video: (not yet)
+  - Demo video: https://youtu.be/RzueeV50nw4
 
 ## Look and Feel
 From `prd.md > Look and Feel`: a futuristic AR/game HUD, inspired by AR games like Pokémon GO, on a dark background.
